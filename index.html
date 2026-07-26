@@ -384,8 +384,12 @@
 
 /* ---------- ولايات سلطنة عمان (الاسم، خط العرض، خط الطول) ---------- */
 const WILAYAT = [
-  ["مسقط",23.588,58.408],["مطرح",23.616,58.567],["بوشر",23.577,58.399],
-  ["السيب",23.670,58.189],["العامرات",23.522,58.497],["قريات",23.266,58.911],
+  /* محافظة مسقط — عدة نقاط لكل ولاية لأن حدودها متداخلة */
+  ["مسقط",23.614,58.593],["مسقط",23.628,58.610],
+  ["مطرح",23.618,58.563],["مطرح",23.607,58.541],
+  ["بوشر",23.575,58.400],["بوشر",23.594,58.424],["بوشر",23.578,58.373],
+  ["السيب",23.670,58.189],["السيب",23.593,58.284],["السيب",23.646,58.185],
+  ["العامرات",23.522,58.497],["قريات",23.266,58.911],
   ["صلالة",17.019,54.089],["طاقة",17.039,54.401],["مرباط",16.992,54.692],
   ["رخيوت",16.741,53.421],["ضلكوت",16.716,53.257],["ثمريت",17.600,54.030],
   ["سدح",17.050,55.070],["شليم وجزر الحلانيات",18.110,55.650],["مقشن",19.580,54.870],
@@ -642,20 +646,40 @@ function nearestWilaya(lat,lng){
   }
   return best;
 }
+/* اسم الولاية الحقيقي من خدمة العناوين (تُرجع "ولاية بوشر" فنأخذ "بوشر").
+   نتجاهل حقل state لأنه اسم المحافظة وليس الولاية. */
+async function reverseWilaya(lat, lng){
+  const url = "https://nominatim.openstreetmap.org/reverse?lat=" + lat +
+              "&lon=" + lng + "&format=json&accept-language=ar&zoom=10";
+  const ctl = new AbortController();
+  const timer = setTimeout(()=>ctl.abort(), 8000);
+  try{
+    const r = await fetch(url, {signal:ctl.signal, headers:{Accept:"application/json"}});
+    if(!r.ok) throw new Error("http-"+r.status);
+    const a = (await r.json()).address || {};
+    const raw = a.province || a.county || a.city_district || a.municipality || "";
+    const name = raw.replace(/^\s*ولاية\s+/, "").trim();
+    if(!name) throw new Error("no-wilaya");
+    return name;
+  } finally { clearTimeout(timer); }
+}
+
 function locate(showMsg){
   if(!navigator.geolocation){ if(showMsg) toast("خدمة الموقع غير متوفرة"); return; }
-  navigator.geolocation.getCurrentPosition(pos=>{
-    const w = nearestWilaya(pos.coords.latitude, pos.coords.longitude);
+  navigator.geolocation.getCurrentPosition(async pos=>{
     settings.lat = pos.coords.latitude;
     settings.lng = pos.coords.longitude;
-    settings.wilaya = w[0];
+    let name = null;
+    try{ name = await reverseWilaya(settings.lat, settings.lng); }catch(e){}
+    if(!name) name = nearestWilaya(settings.lat, settings.lng)[0];
+    settings.wilaya = name;
     saveSettings();
-    updateAll(".js-wilaya", el=>el.textContent = w[0]);
+    updateAll(".js-wilaya", el=>el.textContent = name);
     refreshTimes();
     fetchMinistryTable().then(refreshTimes).catch(()=>{});
-    if(showMsg) toast("تم تحديد الموقع: " + w[0]);
+    if(showMsg) toast("تم تحديد الموقع: " + name);
   }, ()=>{ if(showMsg) toast("تعذر تحديد الموقع — يُعرض آخر موقع محفوظ"); },
-  {enableHighAccuracy:false, timeout:8000, maximumAge:600000});
+  {enableHighAccuracy:true, timeout:10000, maximumAge:600000});
 }
 
 /* ---------- أدوات واجهة ---------- */
