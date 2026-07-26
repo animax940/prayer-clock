@@ -1,5 +1,5 @@
 /* منبه الصلاة — Service Worker: عمل كامل بدون إنترنت بعد أول تحميل */
-const CACHE = "prayer-clock-v2";
+const CACHE = "prayer-clock-v3";
 const ASSETS = [
   "./",
   "index.html",

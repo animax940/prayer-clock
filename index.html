@@ -56,7 +56,7 @@
   .screen{
     position:absolute;inset:0;z-index:3;
     display:flex;flex-direction:column;align-items:center;
-    padding:1cqh 9.5cqw 2.2cqh;
+    padding:1cqh 9.5cqw 1.2cqh;
     opacity:1;transition:opacity .35s ease;
   }
   .screen.hidden{opacity:0;pointer-events:none;}
@@ -65,7 +65,7 @@
   .topbar{
     width:calc(100% + 11cqw);margin:0 -5.5cqw;
     display:flex;justify-content:space-between;align-items:flex-start;
-    min-height:12.5cqh;z-index:6;position:relative;
+    min-height:9.5cqh;z-index:6;position:relative;flex-shrink:0;
   }
   .rosette{
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Cdefs%3E%3CradialGradient id='g' cx='0.35' cy='0.3' r='0.95'%3E%3Cstop offset='0' stop-color='%23ef5058'/%3E%3Cstop offset='0.55' stop-color='%23a3131c'/%3E%3Cstop offset='1' stop-color='%23600910'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cg fill='url(%23g)' stroke='%23eecb7a' stroke-width='2.5'%3E%3Ccircle cx='104' cy='60' r='12'/%3E%3Ccircle cx='98.1' cy='82' r='12'/%3E%3Ccircle cx='82' cy='98.1' r='12'/%3E%3Ccircle cx='60' cy='104' r='12'/%3E%3Ccircle cx='38' cy='98.1' r='12'/%3E%3Ccircle cx='21.9' cy='82' r='12'/%3E%3Ccircle cx='16' cy='60' r='12'/%3E%3Ccircle cx='21.9' cy='38' r='12'/%3E%3Ccircle cx='38' cy='21.9' r='12'/%3E%3Ccircle cx='60' cy='16' r='12'/%3E%3Ccircle cx='82' cy='21.9' r='12'/%3E%3Ccircle cx='98.1' cy='38' r='12'/%3E%3C/g%3E%3Ccircle cx='60' cy='60' r='45' fill='url(%23g)' stroke='%23f6dd95' stroke-width='3.5'/%3E%3Ccircle cx='60' cy='60' r='37' fill='none' stroke='%23eecb7a' stroke-width='1.6' opacity='0.85'/%3E%3Cellipse cx='47' cy='42' rx='18' ry='10' fill='rgba(255,255,255,0.16)'/%3E%3C/svg%3E");
@@ -114,9 +114,9 @@
 
   /* جدول الصلوات */
   .ptable{
-    width:100%;margin-top:1.2cqh;
+    width:100%;margin-top:0.2cqh;
     display:grid;grid-template-columns:1fr 1fr 1fr;
-    row-gap:1.35cqh;column-gap:1cqw;
+    row-gap:0.95cqh;column-gap:1cqw;
     font-variant-numeric:tabular-nums;
   }
   .ptable .head{color:var(--gold-strong);font-size:5cqw;font-weight:900;text-align:center;padding-bottom:.2cqh;}
@@ -131,7 +131,7 @@
   }
 
   /* العد التنازلي */
-  .countdown-box{margin-top:1.3cqh;text-align:center;}
+  .countdown-box{margin-top:0.5cqh;text-align:center;flex-shrink:0;}
   .countdown-label{color:var(--gold-strong);font-size:3.6cqw;font-weight:800;}
   .countdown-time{color:var(--green);font-size:7cqw;font-weight:900;direction:ltr;font-variant-numeric:tabular-nums;line-height:1.1;}
   .countdown-idle{color:var(--gold-strong);font-size:4.4cqw;font-weight:900;padding:.4cqh 0;}
@@ -142,24 +142,25 @@
     border-top:0.5cqw solid var(--gold-dim);border-bottom:0.5cqw solid var(--gold-dim);
     border-radius:1.2cqw;
     overflow:hidden;white-space:nowrap;direction:ltr;
-    height:5.2cqh;display:flex;align-items:center;margin-top:auto;margin-bottom:1.2cqh;
+    display:flex;align-items:center;padding:1.6cqh 0;
+    flex-shrink:0;margin-top:auto;margin-bottom:1.6cqh;
     box-shadow:0 0 1.4cqw rgba(0,0,0,.6), 0 0 1cqw rgba(238,203,122,.25);
   }
   .ticker-inner{
     flex-shrink:0;white-space:nowrap;padding-left:100%;
     animation:tickmove 22s linear infinite reverse;
-    color:var(--white);font-size:4.4cqw;font-weight:800;line-height:1;
+    color:var(--white);font-size:4.4cqw;font-weight:800;line-height:1.3;
   }
   @keyframes tickmove{to{transform:translateX(-100%);}}
   .ticker-inner .event{color:var(--green);}
 
   /* الأزرار السفلية الذهبية الداكنة */
   .bottom-btn{
-    margin:1.3cqh 0 0;cursor:pointer;
+    margin:0;cursor:pointer;flex-shrink:0;
     display:flex;align-items:center;gap:2cqw;
     background:linear-gradient(180deg,#241007,#0d0402);
     color:var(--gold-strong);font-size:5cqw;font-weight:900;
-    border:0.6cqw solid var(--gold-dim);border-radius:6cqw;padding:.6cqh 9cqw;
+    border:0.6cqw solid var(--gold-dim);border-radius:6cqw;padding:1.3cqh 9cqw;
     box-shadow:0 0 1.8cqw rgba(238,203,122,.55), inset 0 0.2cqh 0.6cqh rgba(246,221,149,.25);
     font-family:inherit;
   }
@@ -230,7 +231,8 @@
   #settingsScreen .mid-row{margin-top:.7cqh;}
   #settingsScreen .update-badge{font-size:2.6cqw;width:19cqw;height:19cqw;}
   #settingsScreen .sound-btn{margin:1.4cqh auto 0;padding:.35cqh 0;width:78%;display:block;}
-  #settingsScreen .bottom-btn{margin-top:1cqh;padding:.45cqh 9cqw;}
+  #settingsScreen .bottom-btn{margin-top:0;padding:1.2cqh 9cqw;}
+  #settingsScreen .ticker{margin-bottom:1.4cqh;}
 
   /* شاشة الوداع */
   .farewell{
