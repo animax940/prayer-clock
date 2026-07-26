@@ -1,0 +1,16 @@
+{
+  "name": "منبه الصلاة",
+  "short_name": "منبه الصلاة",
+  "description": "ساعة وأوقات الأذان والإقامة بتقويم وزارة الأوقاف العُمانية",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#4d070d",
+  "theme_color": "#8e1019",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>منبه الصلاة</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<meta name="theme-color" content="#8e1019">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --gold:#eecb7a;
+    --gold-strong:#f6dd95;
+    --gold-dim:#b78f3f;
+    --blue:#8fd6ff;
+    --green:#7dffa0;
+    --white:#ffffff;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    background:#120304;
+    display:flex;align-items:center;justify-content:center;
+    font-family:"Cairo","Segoe UI","Tahoma","Noto Naskh Arabic",sans-serif;
+    overflow:hidden;direction:rtl;
+  }
+  /* ====== الإطار الطولي 9:16 ====== */
+  .app{
+    position:relative;
+    height:100vh;
+    width:calc(100vh * 9 / 16);
+    max-width:100vw;max-height:100vh;
+    container-type:size;overflow:hidden;
+    background:
+      radial-gradient(130% 85% at 50% 28%, #c21823 0%, #8e1019 48%, #4d070d 100%);
+    box-shadow:0 0 60px rgba(0,0,0,.85);
+  }
+  @media (max-aspect-ratio: 9/16){ .app{width:100vw;height:100vh;} }
+  /* نقوش هندسية إسلامية خفيفة */
+  .app::before{
+    content:"";position:absolute;inset:0;pointer-events:none;opacity:.10;z-index:1;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cg fill='none' stroke='%23f6dd95' stroke-width='1.2'%3E%3Cpath d='M60 6l14 26 26 14-26 14-14 26-14-26-26-14 26-14z'/%3E%3Ccircle cx='60' cy='60' r='18'/%3E%3Cpath d='M60 42l6 12 12 6-12 6-6 12-6-12-12-6 12-6z'/%3E%3Cpath d='M0 0l18 18M120 0l-18 18M0 120l18-18M120 120l-18-18'/%3E%3C/g%3E%3C/svg%3E");
+    background-size:15cqw 15cqw;
+  }
+  /* قوس المحراب الذهبي المدبب */
+  svg.mihrab{
+    position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none;
+    filter:drop-shadow(0 0 0.9cqw rgba(246,221,149,.75));
+  }
+
+  /* ====== الشاشات ====== */
+  .screen{
+    position:absolute;inset:0;z-index:3;
+    display:flex;flex-direction:column;align-items:center;
+    padding:1cqh 9.5cqw 2.2cqh;
+    opacity:1;transition:opacity .35s ease;
+  }
+  .screen.hidden{opacity:0;pointer-events:none;}
+
+  /* ====== الرأس المشترك ====== */
+  .topbar{
+    width:calc(100% + 11cqw);margin:0 -5.5cqw;
+    display:flex;justify-content:space-between;align-items:flex-start;
+    min-height:12.5cqh;z-index:6;position:relative;
+  }
+  .rosette{
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Cdefs%3E%3CradialGradient id='g' cx='0.35' cy='0.3' r='0.95'%3E%3Cstop offset='0' stop-color='%23ef5058'/%3E%3Cstop offset='0.55' stop-color='%23a3131c'/%3E%3Cstop offset='1' stop-color='%23600910'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cg fill='url(%23g)' stroke='%23eecb7a' stroke-width='2.5'%3E%3Ccircle cx='104' cy='60' r='12'/%3E%3Ccircle cx='98.1' cy='82' r='12'/%3E%3Ccircle cx='82' cy='98.1' r='12'/%3E%3Ccircle cx='60' cy='104' r='12'/%3E%3Ccircle cx='38' cy='98.1' r='12'/%3E%3Ccircle cx='21.9' cy='82' r='12'/%3E%3Ccircle cx='16' cy='60' r='12'/%3E%3Ccircle cx='21.9' cy='38' r='12'/%3E%3Ccircle cx='38' cy='21.9' r='12'/%3E%3Ccircle cx='60' cy='16' r='12'/%3E%3Ccircle cx='82' cy='21.9' r='12'/%3E%3Ccircle cx='98.1' cy='38' r='12'/%3E%3C/g%3E%3Ccircle cx='60' cy='60' r='45' fill='url(%23g)' stroke='%23f6dd95' stroke-width='3.5'/%3E%3Ccircle cx='60' cy='60' r='37' fill='none' stroke='%23eecb7a' stroke-width='1.6' opacity='0.85'/%3E%3Cellipse cx='47' cy='42' rx='18' ry='10' fill='rgba(255,255,255,0.16)'/%3E%3C/svg%3E");
+    background-size:contain;background-repeat:no-repeat;background-position:center;
+    filter:drop-shadow(0 0.4cqh 0.8cqh rgba(0,0,0,.5));
+  }
+  .badge{
+    width:14cqw;height:14cqw;border:none;background-color:transparent;
+    color:var(--white);display:flex;align-items:center;justify-content:center;
+    font-weight:900;font-size:3.4cqw;cursor:pointer;user-select:none;
+    text-shadow:0 0 0.8cqw rgba(0,0,0,.6);
+  }
+  .badge:active{transform:scale(.92);}
+  .side-col{display:flex;flex-direction:column;align-items:center;}
+  .power-btn{
+    width:14.5cqw;height:14.5cqw;cursor:pointer;border:none;background-color:transparent;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .power-btn svg.icon{width:44%;height:44%;stroke:var(--gold-strong);stroke-width:2.6;fill:none;stroke-linecap:round;
+    filter:drop-shadow(0 0 0.5cqw rgba(246,221,149,.8));}
+  .power-btn:active{transform:scale(.92);}
+
+  /* الموقع */
+  .location{
+    display:flex;align-items:center;gap:1.5cqw;color:var(--white);
+    font-size:6cqw;font-weight:900;margin-top:-2cqh;
+    text-shadow:0 0 1.4cqw rgba(255,255,255,.35);
+  }
+  .location .pin{font-size:4.6cqw;}
+
+  /* الساعة */
+  .clock-wrap{display:flex;align-items:baseline;gap:2cqw;direction:ltr;margin-top:0;}
+  .clock{
+    font-size:13.5cqw;font-weight:900;color:var(--white);letter-spacing:.15cqw;
+    font-variant-numeric:tabular-nums;line-height:1.15;
+    text-shadow:0 0 2.4cqw rgba(255,255,255,.4),0 0.4cqh 1cqh rgba(0,0,0,.45);
+  }
+  .clock .sec{font-size:8cqw;color:var(--gold-strong);}
+  .ampm-live{font-size:5cqw;font-weight:900;color:var(--white);}
+
+  /* التاريخ */
+  .dates{display:flex;flex-direction:column;align-items:center;gap:.15cqh;margin-top:.2cqh;}
+  .hijri{color:var(--gold-strong);font-size:5cqw;font-weight:900;direction:rtl;}
+  .greg{color:var(--white);font-size:4.2cqw;font-weight:700;opacity:.95;direction:ltr;}
+  .dayname{color:var(--white);font-size:6cqw;font-weight:900;text-shadow:0 0 1.6cqw rgba(255,255,255,.3);}
+
+  /* جدول الصلوات */
+  .ptable{
+    width:100%;margin-top:1.2cqh;
+    display:grid;grid-template-columns:1fr 1fr 1fr;
+    row-gap:1.35cqh;column-gap:1cqw;
+    font-variant-numeric:tabular-nums;
+  }
+  .ptable .head{color:var(--gold-strong);font-size:5cqw;font-weight:900;text-align:center;padding-bottom:.2cqh;}
+  .ptable .cell{text-align:center;font-size:5.4cqw;font-weight:900;direction:ltr;line-height:1.2;}
+  .ptable .pname{color:var(--gold-strong);font-size:5.2cqw;font-weight:900;text-align:center;line-height:1.2;}
+  .ptable .adhan{color:var(--blue);text-shadow:0 0 1.2cqw rgba(143,214,255,.35);}
+  .ptable .iqamah{color:var(--green);text-shadow:0 0 1.2cqw rgba(125,255,160,.35);}
+  .ptable .row-hl{position:relative;}
+  .ptable .row-hl::before{
+    content:"";position:absolute;inset:-0.4cqh -1cqw;border-radius:2cqw;z-index:-1;
+    background:rgba(246,221,149,.10);border:1px solid rgba(246,221,149,.4);
+  }
+
+  /* العد التنازلي */
+  .countdown-box{margin-top:1.3cqh;text-align:center;}
+  .countdown-label{color:var(--gold-strong);font-size:3.6cqw;font-weight:800;}
+  .countdown-time{color:var(--green);font-size:7cqw;font-weight:900;direction:ltr;font-variant-numeric:tabular-nums;line-height:1.1;}
+  .countdown-idle{color:var(--gold-strong);font-size:4.4cqw;font-weight:900;padding:.4cqh 0;}
+
+  /* الشريط المتحرك */
+  .ticker{
+    width:100%;background:#000;
+    border-top:0.5cqw solid var(--gold-dim);border-bottom:0.5cqw solid var(--gold-dim);
+    border-radius:1.2cqw;
+    overflow:hidden;white-space:nowrap;direction:ltr;
+    height:5.2cqh;display:flex;align-items:center;margin-top:auto;margin-bottom:1.2cqh;
+    box-shadow:0 0 1.4cqw rgba(0,0,0,.6), 0 0 1cqw rgba(238,203,122,.25);
+  }
+  .ticker-inner{
+    flex-shrink:0;white-space:nowrap;padding-left:100%;
+    animation:tickmove 22s linear infinite reverse;
+    color:var(--white);font-size:4.4cqw;font-weight:800;line-height:1;
+  }
+  @keyframes tickmove{to{transform:translateX(-100%);}}
+  .ticker-inner .event{color:var(--green);}
+
+  /* الأزرار السفلية الذهبية الداكنة */
+  .bottom-btn{
+    margin:1.3cqh 0 0;cursor:pointer;
+    display:flex;align-items:center;gap:2cqw;
+    background:linear-gradient(180deg,#241007,#0d0402);
+    color:var(--gold-strong);font-size:5cqw;font-weight:900;
+    border:0.6cqw solid var(--gold-dim);border-radius:6cqw;padding:.6cqh 9cqw;
+    box-shadow:0 0 1.8cqw rgba(238,203,122,.55), inset 0 0.2cqh 0.6cqh rgba(246,221,149,.25);
+    font-family:inherit;
+  }
+  .bottom-btn:active{transform:scale(.95);}
+
+  /* ====== شاشة الضبط ====== */
+  .set-box{
+    width:100%;border:0.55cqw solid var(--gold);border-radius:4cqw;
+    padding:.7cqh 4cqw 1cqh;margin-top:1.1cqh;background:rgba(0,0,0,.25);
+    box-shadow:0 0 1.4cqw rgba(238,203,122,.3), inset 0 0 2cqw rgba(0,0,0,.4);
+  }
+  .set-box h3{color:var(--blue);font-size:4.6cqw;font-weight:900;text-align:center;margin-bottom:.5cqh;}
+  .set-box h3.gold{color:var(--gold-strong);}
+  .hijri-line{display:flex;align-items:center;justify-content:center;gap:2.5cqw;color:var(--white);font-size:4.6cqw;font-weight:900;}
+  .num-input{
+    width:14cqw;text-align:center;direction:ltr;
+    background:#000;color:var(--white);font-size:4.8cqw;font-weight:900;
+    border:0.4cqw solid rgba(238,203,122,.6);border-radius:1.6cqw;padding:.2cqh 0;
+    font-variant-numeric:tabular-nums;font-family:inherit;
+  }
+  .num-input::-webkit-outer-spin-button,.num-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+  .num-input{-moz-appearance:textfield;appearance:textfield;}
+  .num-input:focus{outline:none;border-color:var(--gold-strong);box-shadow:0 0 1.2cqw rgba(246,221,149,.7);}
+  .iq-row{display:flex;align-items:center;justify-content:space-between;margin:.5cqh 0;}
+  .iq-row label{color:var(--gold-strong);font-size:4.8cqw;font-weight:900;}
+  .iq-row .num-input{width:24cqw;color:var(--white);}
+  .mid-row{width:100%;display:flex;align-items:center;justify-content:space-between;margin-top:1.1cqh;gap:3.5cqw;}
+  .update-badge{
+    cursor:pointer;flex-shrink:0;
+    width:21cqw;height:21cqw;
+    color:var(--white);font-size:3cqw;font-weight:900;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;
+    text-align:center;line-height:1.2;border:none;background-color:transparent;
+    text-shadow:0 0 0.8cqw rgba(0,0,0,.7);
+  }
+  .update-badge:active{transform:scale(.92);}
+  .vol-wrap{flex:1;display:flex;flex-direction:column;gap:.4cqh;}
+  .vol-label{color:var(--gold-strong);font-size:3.8cqw;font-weight:900;display:flex;justify-content:space-between;}
+  .vol-label .pct{color:var(--white);direction:ltr;}
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;width:100%;height:1.3cqh;border-radius:1cqh;
+    background:linear-gradient(90deg,#e33540 var(--fill,50%),rgba(255,255,255,.25) var(--fill,50%));
+    outline:none;direction:ltr;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;width:6cqw;height:6cqw;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,#ef5058,#8f0f16);
+    border:0.5cqw solid var(--gold);box-shadow:0 0 1.2cqw rgba(238,203,122,.8);cursor:pointer;
+  }
+  .sound-btn{
+    margin-top:.8cqh;cursor:pointer;width:100%;
+    background:linear-gradient(180deg,#c21823,#7b0d15);
+    color:var(--white);font-size:4.4cqw;font-weight:900;
+    border:0.5cqw solid var(--gold);border-radius:6cqw;padding:.5cqh 0;
+    box-shadow:0 0 1.6cqw rgba(238,203,122,.5), inset 0 0.3cqh 0.6cqh rgba(255,255,255,.25);
+    font-family:inherit;
+  }
+  .sound-btn:active{transform:scale(.96);}
+
+  /* ضغط عناصر شاشة الضبط لتتسع داخل الإطار */
+  #settingsScreen .clock{font-size:10cqw;}
+  #settingsScreen .clock .sec{font-size:6cqw;}
+  #settingsScreen .ampm-live{font-size:4cqw;}
+  #settingsScreen .location{font-size:5cqw;}
+  #settingsScreen .set-box{margin-top:.8cqh;padding:.5cqh 4cqw .7cqh;}
+  #settingsScreen .iq-row{margin:.3cqh 0;}
+  #settingsScreen .iq-row .num-input{padding:.05cqh 0;font-size:4.4cqw;}
+  #settingsScreen .mid-row{margin-top:.7cqh;}
+  #settingsScreen .update-badge{font-size:2.6cqw;width:19cqw;height:19cqw;}
+  #settingsScreen .sound-btn{margin:1.4cqh auto 0;padding:.35cqh 0;width:78%;display:block;}
+  #settingsScreen .bottom-btn{margin-top:1cqh;padding:.45cqh 9cqw;}
+
+  /* شاشة الوداع */
+  .farewell{
+    position:absolute;inset:0;z-index:50;display:none;
+    flex-direction:column;align-items:center;justify-content:center;gap:2cqh;
+    background:linear-gradient(180deg,#2b070a,#140304);color:var(--gold-strong);
+    font-size:7cqw;font-weight:900;text-align:center;padding:0 8cqw;
+  }
+  .farewell.show{display:flex;}
+  .farewell .sub{font-size:3.8cqw;color:var(--white);font-weight:600;}
+
+  /* توست */
+  .toast{
+    position:absolute;bottom:14cqh;left:50%;transform:translateX(-50%) translateY(2cqh);
+    background:rgba(0,0,0,.88);color:var(--gold-strong);border:1px solid var(--gold-dim);
+    padding:.7cqh 5cqw;border-radius:3cqw;font-size:3.6cqw;font-weight:800;
+    opacity:0;transition:all .3s ease;z-index:40;pointer-events:none;white-space:nowrap;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <!-- قوس المحراب -->
+  <svg class="mihrab" viewBox="0 0 90 160" preserveAspectRatio="none" aria-hidden="true">
+    <defs>
+      <linearGradient id="goldg" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#f8e6ac"/><stop offset="0.35" stop-color="#c9982c"/>
+        <stop offset="0.55" stop-color="#f6dd95"/><stop offset="0.8" stop-color="#a87e22"/>
+        <stop offset="1" stop-color="#eecb7a"/>
+      </linearGradient>
+    </defs>
+    <path d="M5,150 L5,36 C5,28 11,25 21,21.2 C35,16 43,10.5 45,4 C47,10.5 55,16 69,21.2 C79,25 85,28 85,36 L85,150 C85,155 83,157 78,157 L12,157 C7,157 5,155 5,150 Z"
+      fill="none" stroke="url(#goldg)" stroke-width="4.5" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
+    <path d="M8.2,149 L8.2,37.5 C8.2,30.5 13.5,27.8 23,24.2 C36,19.3 43.6,13.6 45,8.4 C46.4,13.6 54,19.3 67,24.2 C76.5,27.8 81.8,30.5 81.8,37.5 L81.8,149 C81.8,152.6 80.3,154 76.8,154 L13.2,154 C9.7,154 8.2,152.6 8.2,149 Z"
+      fill="none" stroke="#eecb7a" stroke-width="1.2" vector-effect="non-scaling-stroke" opacity="0.7"/>
+  </svg>
+
+  <!-- ============ الشاشة الرئيسية ============ -->
+  <div class="screen" id="mainScreen">
+    <div class="topbar">
+      <div class="side-col">
+        <div class="badge rosette js-fmt" title="نظام الساعة">24H</div>      </div>
+      <button class="power-btn rosette js-power" title="خروج" aria-label="خروج">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M12 3v8"/><path d="M6.3 6.5a8 8 0 1 0 11.4 0"/></svg>
+      </button>
+      <div class="side-col">
+        <div class="badge rosette js-bell" title="الإشعارات">🔔</div>
+      </div>
+    </div>
+
+    <div class="location"><span class="pin">📍</span><span class="js-wilaya">مسقط</span></div>
+
+    <div class="clock-wrap">
+      <div class="clock js-clock">--:--<span class="sec">:--</span></div>
+      <div class="ampm-live js-ampm-live">AM</div>
+    </div>
+
+    <div class="dates">
+      <div class="hijri js-hijri">-- / -- / ----</div>
+      <div class="greg js-greg">-- / -- / ----</div>
+      <div class="dayname js-dayname">—</div>
+    </div>
+
+    <div class="ptable" id="ptable">
+      <div class="head">الأذان</div><div class="head"></div><div class="head">الإقامة</div>
+    </div>
+
+    <div class="countdown-box" id="countdownBox">
+      <div class="countdown-idle" id="countdownIdle">لا توجد إقامة نشطة حالياً</div>
+      <div id="countdownActive" style="display:none">
+        <div class="countdown-label" id="countdownLabel">المتبقي لإقامة الصلاة</div>
+        <div class="countdown-time" id="countdownTime">00:00</div>
+      </div>
+    </div>
+
+    <div class="ticker"><div class="ticker-inner" id="tickerMain">سبحان الله والحمدلله ولا اله الا الله والله اكبر ولا حول ولاقوة الا بالله</div></div>
+
+    <button class="bottom-btn" id="gotoSettings">⚙️ الضبط</button>
+  </div>
+
+  <!-- ============ شاشة الضبط ============ -->
+  <div class="screen hidden" id="settingsScreen">
+    <div class="topbar">
+      <div class="side-col">
+        <div class="badge rosette js-fmt">24H</div>      </div>
+      <button class="power-btn rosette js-power" title="خروج" aria-label="خروج">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M12 3v8"/><path d="M6.3 6.5a8 8 0 1 0 11.4 0"/></svg>
+      </button>
+      <div class="side-col">
+        <div class="badge rosette js-bell" title="الإشعارات">🔔</div>
+      </div>
+    </div>
+
+    <div class="location"><span class="pin">📍</span><span class="js-wilaya">مسقط</span></div>
+
+    <div class="clock-wrap">
+      <div class="clock js-clock">--:--<span class="sec">:--</span></div>
+      <div class="ampm-live js-ampm-live">AM</div>
+    </div>
+
+    <div class="set-box">
+      <h3>ضبط التاريخ الهجري</h3>
+      <div class="hijri-line">
+        <span>اليوم</span>
+        <input class="num-input" id="hijriDayInput" type="number" min="1" max="30" inputmode="numeric">
+        <span style="width:4cqw"></span>
+        <input class="num-input" id="hijriMonthInput" type="number" min="1" max="12" inputmode="numeric">
+        <span>الشهر</span>
+      </div>
+    </div>
+
+    <div class="set-box">
+      <h3 class="gold">الإقامة</h3>
+      <div id="iqamahList"></div>
+    </div>
+
+    <div class="mid-row">
+      <button class="update-badge rosette" id="updateCalendar">Update<br>Calendar</button>
+      <div class="vol-wrap">
+        <div class="vol-label"><span>مستوى الصوت</span><span class="pct" id="volPct">70%</span></div>
+        <input type="range" id="volSlider" min="0" max="100" value="70">
+        <button class="sound-btn" id="soundBtn">🔊 الصوت الاول</button>
+      </div>
+    </div>
+
+    <div class="ticker"><div class="ticker-inner">تصميم أحمد السعيدي, اللهم اغفر لي ولوالدي ولمن استخدم هذا التطبيق ودعا لنا بالخير ولجميع المسلمين</div></div>
+
+    <button class="bottom-btn" id="saveBtn">💾 حفظ</button>
+  </div>
+
+  <!-- شاشة الوداع -->
+  <div class="farewell" id="farewell">
+    <div>في أمان الله</div>
+    <div class="sub">يمكنك الآن إغلاق نافذة المتصفح</div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script src="times_data.js"></script>
+<script>
+"use strict";
+/* ============================================================
+   منبه الصلاة — تطبيق ويب
+   أوقات الصلاة تُحسب فلكياً حسب موقع الولاية (طبقة بديلة محلية
+   لتعذر الاتصال المباشر بموقع وزارة الأوقاف بسبب CORS)
+   ============================================================ */
+
+/* ---------- ولايات سلطنة عمان (الاسم، خط العرض، خط الطول) ---------- */
+const WILAYAT = [
+  ["مسقط",23.588,58.408],["مطرح",23.616,58.567],["بوشر",23.577,58.399],
+  ["السيب",23.670,58.189],["العامرات",23.522,58.497],["قريات",23.266,58.911],
+  ["صلالة",17.019,54.089],["طاقة",17.039,54.401],["مرباط",16.992,54.692],
+  ["رخيوت",16.741,53.421],["ضلكوت",16.716,53.257],["ثمريت",17.600,54.030],
+  ["سدح",17.050,55.070],["شليم وجزر الحلانيات",18.110,55.650],["مقشن",19.580,54.870],
+  ["المزيونة",17.850,52.650],
+  ["خصب",26.180,56.248],["بخا",26.145,56.150],["دبا",25.640,56.260],["مدحاء",25.280,56.340],
+  ["البريمي",24.250,55.790],["محضة",24.400,55.970],["السنينة",24.050,55.850],
+  ["نزوى",22.933,57.531],["بهلا",22.970,57.300],["منح",22.790,57.590],
+  ["الحمراء",23.110,57.290],["أدم",22.380,57.520],["إزكي",22.930,57.770],
+  ["سمائل",23.300,57.980],["بدبد",23.410,58.130],["الجبل الأخضر",23.070,57.660],
+  ["صحار",24.342,56.730],["شناص",24.740,56.470],["لوى",24.530,56.560],
+  ["صحم",24.170,56.890],["الخابورة",23.970,57.090],["السويق",23.850,57.440],
+  ["الرستاق",23.390,57.420],["العوابي",23.300,57.530],["نخل",23.400,57.830],
+  ["وادي المعاول",23.520,57.790],["بركاء",23.710,57.890],["المصنعة",23.780,57.630],
+  ["صور",22.567,59.529],["الكامل والوافي",22.230,59.200],["جعلان بني بو حسن",22.100,59.320],
+  ["جعلان بني بو علي",22.020,59.340],["مصيرة",20.430,58.840],
+  ["إبراء",22.690,58.530],["المضيبي",22.570,58.120],["بدية",22.450,58.800],
+  ["القابل",22.570,58.690],["وادي بني خالد",22.610,59.100],["دماء والطائيين",22.870,58.900],
+  ["عبري",23.230,56.510],["ينقل",23.590,56.540],["ضنك",23.550,56.250],
+  ["هيما",19.960,56.280],["الدقم",19.660,57.700],["محوت",20.770,58.200],["الجازر",18.950,56.450]
+];
+
+/* ---------- المناسبات الدينية (شهر هجري - يوم) ---------- */
+const HIJRI_EVENTS = {
+  "1-1":"🌙 نبارك لكم حلول العام الهجري الجديد",
+  "9-1":"🌙 ثبوت رؤية هلال شهر رمضان المبارك — مبارك عليكم الشهر",
+  "9-27":"✨ ليلة السابع والعشرين من رمضان — تحروا ليلة القدر",
+  "10-1":"🎉 عيد الفطر السعيد — تقبل الله منا ومنكم",
+  "10-2":"🎉 أيام عيد الفطر السعيد — عساكم من عواده",
+  "12-9":"🕋 يوم عرفة — تقبل الله من الحجاج والصائمين",
+  "12-10":"🎉 عيد الأضحى المبارك — تقبل الله منا ومنكم",
+  "12-11":"🎉 أيام التشريق — عيدكم مبارك",
+  "3-12":"🌙 ذكرى المولد النبوي الشريف",
+  "7-27":"✨ ذكرى الإسراء والمعراج",
+  "8-15":"🌙 ليلة النصف من شعبان"
+};
+
+const TICKER_MAIN_TEXT = "سبحان الله والحمدلله ولا اله الا الله والله اكبر ولا حول ولاقوة الا بالله";
+const PRAYERS = [
+  {key:"fajr",   name:"الفجر",  hasIqamah:true},
+  {key:"sunrise",name:"الشروق", hasIqamah:false},
+  {key:"dhuhr",  name:"الظهر",  hasIqamah:true},
+  {key:"asr",    name:"العصر",  hasIqamah:true},
+  {key:"maghrib",name:"المغرب", hasIqamah:true},
+  {key:"isha",   name:"العشاء", hasIqamah:true}
+];
+const SOUNDS = [
+  {name:"الصوت الاول",  file:"sounds/adhan1.mp3"},
+  {name:"الصوت الثاني", file:"sounds/adhan2.mp3"}
+];
+
+/* ---------- الإعدادات المحفوظة ---------- */
+const DEFAULTS = {
+  iqamah:{fajr:20,dhuhr:15,asr:15,maghrib:10,isha:15},
+  hijriOffsetDays:0,
+  volume:70,
+  soundIndex:0,
+  use24h:true,
+  bellOn:true,
+  lat:23.588, lng:58.408, wilaya:"مسقط"
+};
+let settings = loadSettings();
+function loadSettings(){
+  try{
+    const s = JSON.parse(localStorage.getItem("prayerClockSettings"));
+    if(s) return Object.assign({}, DEFAULTS, s, {iqamah:Object.assign({},DEFAULTS.iqamah,s.iqamah)});
+  }catch(e){}
+  return JSON.parse(JSON.stringify(DEFAULTS));
+}
+function saveSettings(){
+  localStorage.setItem("prayerClockSettings", JSON.stringify(settings));
+}
+
+/* ---------- حساب أوقات الصلاة فلكياً ---------- */
+const rad = d=>d*Math.PI/180, deg = r=>r*180/Math.PI;
+const fixAngle = a=>((a%360)+360)%360;
+const fixHour  = h=>((h%24)+24)%24;
+
+function sunPosition(jd){
+  const D = jd - 2451545.0;
+  const g = fixAngle(357.529 + 0.98560028*D);
+  const q = fixAngle(280.459 + 0.98564736*D);
+  const L = fixAngle(q + 1.915*Math.sin(rad(g)) + 0.020*Math.sin(rad(2*g)));
+  const e = 23.439 - 0.00000036*D;
+  const RA = deg(Math.atan2(Math.cos(rad(e))*Math.sin(rad(L)), Math.cos(rad(L))))/15;
+  return {
+    decl: deg(Math.asin(Math.sin(rad(e))*Math.sin(rad(L)))),
+    eqt : q/15 - fixHour(RA)
+  };
+}
+/* أوقات اليوم بالساعات المحلية العشرية */
+function computePrayerTimes(date, lat, lng){
+  const tz = -date.getTimezoneOffset()/60;
+  const jd = Date.UTC(date.getFullYear(),date.getMonth(),date.getDate())/86400000 + 2440587.5
+             + 0.5 - lng/360; /* منتصف النهار المحلي تقريباً */
+  const {decl,eqt} = sunPosition(jd);
+  const dhuhr = fixHour(12 + tz - lng/15 - eqt);
+  function hourAngle(angle){
+    const c = (-Math.sin(rad(angle)) - Math.sin(rad(decl))*Math.sin(rad(lat))) /
+              (Math.cos(rad(decl))*Math.cos(rad(lat)));
+    if(c>1||c<-1) return NaN;
+    return deg(Math.acos(c))/15;
+  }
+  function asrTime(factor){
+    const a = deg(Math.atan(1/(factor + Math.tan(rad(Math.abs(lat-decl))))));
+    return hourAngle(-a); /* زاوية موجبة فوق الأفق */
+  }
+  return {
+    fajr:    dhuhr - hourAngle(18),
+    sunrise: dhuhr - hourAngle(0.833),
+    dhuhr:   dhuhr + 5/60,          /* دقائق احتياط بعد الزوال */
+    asr:     dhuhr + asrTime(1),
+    maghrib: dhuhr + hourAngle(0.833),
+    isha:    dhuhr + hourAngle(18)
+  };
+}
+function hoursToHM(h){
+  h = fixHour(h);
+  let hh = Math.floor(h), mm = Math.round((h-hh)*60);
+  if(mm===60){mm=0;hh=(hh+1)%24;}
+  return hh*60+mm; /* دقائق منذ منتصف الليل */
+}
+function fmtMinutes(totalMin){
+  totalMin = ((totalMin%1440)+1440)%1440;
+  let h = Math.floor(totalMin/60), m = totalMin%60;
+  if(settings.use24h) return String(h).padStart(2,"0")+":"+String(m).padStart(2,"0");
+  const h12 = (h%12)||12;
+  return String(h12).padStart(2,"0")+":"+String(m).padStart(2,"0");
+}
+
+/* ============================================================
+   طبقة بيانات الوزارة — نفس آلية تطبيقات الساعات المنتشرة:
+   جداول سنوية لكل ولاية (يوم/شهر ← 6 أوقات) تُجلب من نفس النطاق
+   بلا CORS، وتُخزَّن محلياً، مع الحساب الفلكي كاحتياط أخير.
+   ============================================================ */
+const CITY_ALIASES = {
+  "مطرح":"مسقط","بوشر":"مسقط","السيب":"مسقط","العامرات":"مسقط",
+  "خصب":"مسندم","دبا":"دبا البيعة","الجبل الأخضر":"سيق",
+  "السنينة":"البريمي","الحمراء":"الحمرة","ضلكوت":"ظلكوت",
+  "جعلان بني بو حسن":"جعلان بوحسن","جعلان بني بو علي":"جعلان بوعلي",
+  "شليم وجزر الحلانيات":"شليم","المزيونة":"حبروت","القابل":"القابل الشرقية",
+  "دماء والطائيين":"دماء والطائين"
+};
+let cachedTable = null; /* {city, tbl, fetched} من آخر جلب ناجح */
+try{ cachedTable = JSON.parse(localStorage.getItem("ministryTable")); }catch(e){}
+
+function normName(s){
+  return String(s).replace(/^ال/,"").replace(/[أإآ]/g,"ا").replace(/ة/g,"ه")
+                  .replace(/ء/g,"").replace(/ى/g,"ي").replace(/\s+/g,"");
+}
+let cityIndex = null;
+function buildCityIndex(){
+  const names = new Set();
+  if(window.TIMES_DATA) Object.keys(window.TIMES_DATA).forEach(n=>names.add(n));
+  if(window.TIMES_PACK) Object.keys(window.TIMES_PACK).forEach(n=>names.add(n));
+  if(cachedTable && cachedTable.city) names.add(cachedTable.city);
+  cityIndex = {};
+  for(const n of names) cityIndex[normName(n)] = n;
+}
+function resolveCityName(wilaya){
+  buildCityIndex();
+  const w = CITY_ALIASES[wilaya] || wilaya;
+  const nw = normName(w);
+  if(cityIndex[nw]) return cityIndex[nw];
+  for(const k in cityIndex){
+    if(k.startsWith(nw) || nw.startsWith(k)) return cityIndex[k];
+  }
+  return null;
+}
+/* صف اليوم [فجر، شروق، ظهر، عصر، مغرب، عشاء] بصيغة 12 ساعة */
+function ministryRow(date){
+  const city = resolveCityName(settings.wilaya);
+  if(!city) return null;
+  const key = date.getDate() + "/" + (date.getMonth()+1);
+  if(cachedTable && cachedTable.city===city && cachedTable.tbl && cachedTable.tbl[key])
+    return cachedTable.tbl[key];
+  if(window.TIMES_DATA && window.TIMES_DATA[city] && window.TIMES_DATA[city][key])
+    return window.TIMES_DATA[city][key];
+  if(window.TIMES_PACK && window.TIMES_PACK[city]){
+    const CUMD=[0,31,60,91,121,152,182,213,244,274,305,335];
+    const off=(CUMD[date.getMonth()] + date.getDate()-1)*24;
+    const seg=window.TIMES_PACK[city].substr(off,24);
+    if(seg.length===24){
+      const r=[]; for(let i=0;i<6;i++) r.push(seg.substr(i*4,2)+":"+seg.substr(i*4+2,2));
+      return r;
+    }
+  }
+  return null;
+}
+/* تحويل صف 12 ساعة إلى دقائق منذ منتصف الليل (الفجر والشروق صباحاً،
+   الظهر 11/12، والعصر والمغرب والعشاء مساءً) */
+function rowToMinutes(row){
+  const conv = (t,idx)=>{
+    const p = t.split(":"), h = +p[0], m = +p[1];
+    const hh = idx>=3 ? (h%12)+12 : h;
+    return hh*60+m;
+  };
+  return {fajr:conv(row[0],0), sunrise:conv(row[1],1), dhuhr:conv(row[2],2),
+          asr:conv(row[3],3), maghrib:conv(row[4],4), isha:conv(row[5],5)};
+}
+/* جلب جدول الولاية من نفس النطاق (times/) وتخزينه */
+async function fetchMinistryTable(){
+  const city = resolveCityName(settings.wilaya);
+  if(!city) throw new Error("no-city");
+  const r = await fetch("times/" + encodeURIComponent(city + "_times.json") + "?t=" + Date.now(), {cache:"no-store"});
+  if(!r.ok) throw new Error("http-"+r.status);
+  const tbl = await r.json();
+  cachedTable = {city, tbl, fetched: Date.now()};
+  try{ localStorage.setItem("ministryTable", JSON.stringify(cachedTable)); }catch(e){}
+  return true;
+}
+
+let todayTimes = null; /* {fajr: min, sunrise: min, ...} */
+let dataSource = "calc"; /* ministry | calc */
+function refreshTimes(){
+  const row = ministryRow(new Date());
+  if(row){
+    todayTimes = rowToMinutes(row);
+    dataSource = "ministry";
+  }else{
+    const t = computePrayerTimes(new Date(), settings.lat, settings.lng);
+    todayTimes = {};
+    for(const p of PRAYERS) todayTimes[p.key] = hoursToHM(t[p.key]);
+    dataSource = "calc";
+  }
+  renderTable();
+}
+
+/* ---------- التاريخ الهجري ---------- */
+function hijriParts(date){
+  const d = new Date(date.getTime() + settings.hijriOffsetDays*86400000);
+  const fmt = new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura-nu-latn",
+    {day:"numeric", month:"long", year:"numeric"});
+  const num = new Intl.DateTimeFormat("en-u-ca-islamic-umalqura",
+    {day:"numeric", month:"numeric", year:"numeric"});
+  const parts = {}, nparts = {};
+  for(const p of fmt.formatToParts(d)) parts[p.type]=p.value;
+  for(const p of num.formatToParts(d)) nparts[p.type]=p.value;
+  return {
+    day: parseInt(nparts.day,10),
+    month: parseInt(nparts.month,10),
+    monthName: parts.month,
+    year: parts.year.replace(/[^0-9]/g,"")
+  };
+}
+
+/* ---------- أقرب ولاية ---------- */
+function nearestWilaya(lat,lng){
+  let best = WILAYAT[0], bd = Infinity;
+  for(const w of WILAYAT){
+    const dLat = rad(w[1]-lat), dLng = rad(w[2]-lng);
+    const a = Math.sin(dLat/2)**2 + Math.cos(rad(lat))*Math.cos(rad(w[1]))*Math.sin(dLng/2)**2;
+    const d = 2*Math.asin(Math.sqrt(a));
+    if(d<bd){bd=d;best=w;}
+  }
+  return best;
+}
+function locate(showMsg){
+  if(!navigator.geolocation){ if(showMsg) toast("خدمة الموقع غير متوفرة"); return; }
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const w = nearestWilaya(pos.coords.latitude, pos.coords.longitude);
+    settings.lat = pos.coords.latitude;
+    settings.lng = pos.coords.longitude;
+    settings.wilaya = w[0];
+    saveSettings();
+    updateAll(".js-wilaya", el=>el.textContent = w[0]);
+    refreshTimes();
+    fetchMinistryTable().then(refreshTimes).catch(()=>{});
+    if(showMsg) toast("تم تحديد الموقع: " + w[0]);
+  }, ()=>{ if(showMsg) toast("تعذر تحديد الموقع — يُعرض آخر موقع محفوظ"); },
+  {enableHighAccuracy:false, timeout:8000, maximumAge:600000});
+}
+
+/* ---------- أدوات واجهة ---------- */
+const $ = s=>document.querySelector(s);
+function updateAll(sel, fn){ document.querySelectorAll(sel).forEach(fn); }
+let toastTimer=null;
+function toast(msg){
+  const t=$("#toast"); t.textContent=msg; t.classList.add("show");
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove("show"),3000);
+}
+
+/* ---------- جدول الصلوات ---------- */
+function renderTable(){
+  const tbl = $("#ptable");
+  tbl.querySelectorAll(".cell,.pname").forEach(e=>e.remove());
+  if(!todayTimes) return;
+  const nowMin = currentMinutes();
+  let nextKey = null;
+  for(const p of PRAYERS){ if(p.key!=="sunrise" && todayTimes[p.key] > nowMin){ nextKey=p.key; break; } }
+  if(!nextKey) nextKey = "fajr";
+  for(const p of PRAYERS){
+    const hl = p.key===nextKey ? " row-hl" : "";
+    const adhan = document.createElement("div");
+    adhan.className = "cell adhan"+hl;
+    adhan.textContent = fmtMinutes(todayTimes[p.key]);
+    const name = document.createElement("div");
+    name.className = "pname"+hl;
+    name.textContent = p.name;
+    const iq = document.createElement("div");
+    iq.className = "cell iqamah"+hl;
+    iq.textContent = p.hasIqamah ? fmtMinutes(todayTimes[p.key] + settings.iqamah[p.key]) : "—";
+    tbl.append(adhan,name,iq);
+  }
+}
+function currentMinutes(){
+  const n = new Date();
+  return n.getHours()*60 + n.getMinutes() + n.getSeconds()/60;
+}
+
+/* ---------- الصوت ---------- */
+let audioCtx = null;
+function ensureAudio(){
+  if(!audioCtx){
+    try{ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){}
+  }
+  if(audioCtx && audioCtx.state==="suspended") audioCtx.resume();
+}
+function playTone(freq, start, dur, vol){
+  const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+  o.type = "sine"; o.frequency.value = freq;
+  g.gain.setValueAtTime(0, audioCtx.currentTime+start);
+  g.gain.linearRampToValueAtTime(vol, audioCtx.currentTime+start+0.03);
+  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+start+dur);
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start(audioCtx.currentTime+start); o.stop(audioCtx.currentTime+start+dur+0.05);
+}
+/* نغمة قصيرة للإقامة (وكاحتياط إذا تعذر تشغيل ملف الأذان) */
+function playIqamahTone(){
+  if(!settings.bellOn) return;
+  ensureAudio(); if(!audioCtx) return;
+  const v = Math.max(0.001, settings.volume/100 * 0.6);
+  for(const [f,s,d] of [[880,0,.35],[660,.4,.35],[880,.8,.5]]) playTone(f,s,d,v);
+}
+/* صوت الأذان الحقيقي */
+let adhanAudio = null;
+function stopAdhan(){
+  if(adhanAudio){ try{ adhanAudio.pause(); }catch(e){} adhanAudio = null; }
+}
+function playAdhan(){
+  if(!settings.bellOn) return;
+  stopAdhan();
+  const snd = SOUNDS[settings.soundIndex % SOUNDS.length];
+  const a = new Audio(snd.file);
+  a.volume = Math.min(1, Math.max(0, settings.volume/100));
+  a.onerror = playIqamahTone;
+  adhanAudio = a;
+  a.play().catch(playIqamahTone);
+}
+
+/* ---------- الحلقة الرئيسية (كل ثانية) ---------- */
+let lastAlertStamp = "";
+let lastDay = new Date().getDate();
+function tick(){
+  const now = new Date();
+
+  /* الساعة */
+  let h = now.getHours(), m = now.getMinutes(), s = now.getSeconds();
+  const ampm = h<12 ? "AM" : "PM";
+  let dispH = settings.use24h ? h : ((h%12)||12);
+  const clockStr = String(dispH).padStart(2,"0")+":"+String(m).padStart(2,"0");
+  updateAll(".js-clock", el=>{
+    el.innerHTML = clockStr + '<span class="sec">:' + String(s).padStart(2,"0") + '</span>';
+  });
+  updateAll(".js-ampm-live", el=>el.textContent = ampm);
+
+  /* التواريخ */
+  const hj = hijriParts(now);
+  $("#mainScreen .js-hijri").textContent = hj.day + " / " + hj.monthName + " / " + hj.year + " هـ";
+  $("#mainScreen .js-greg").textContent = now.getFullYear() + " / " + String(now.getMonth()+1).padStart(2,"0") + " / " + String(now.getDate()).padStart(2,"0");
+  $("#mainScreen .js-dayname").textContent = now.toLocaleDateString("ar",{weekday:"long"});
+
+  /* يوم جديد → إعادة حساب الأوقات */
+  if(now.getDate() !== lastDay){ lastDay = now.getDate(); refreshTimes(); updateTicker(); }
+
+  /* العد التنازلي بين الأذان والإقامة */
+  const nowMin = currentMinutes();
+  let active = null;
+  if(todayTimes){
+    for(const p of PRAYERS){
+      if(!p.hasIqamah) continue;
+      const a = todayTimes[p.key], iq = a + settings.iqamah[p.key];
+      if(nowMin >= a && nowMin < iq){ active = {p, remain: iq - nowMin}; break; }
+    }
+  }
+  if(active){
+    $("#countdownIdle").style.display="none";
+    $("#countdownActive").style.display="block";
+    $("#countdownLabel").textContent = "المتبقي لإقامة صلاة " + active.p.name;
+    const totSec = Math.max(0, Math.round(active.remain*60));
+    $("#countdownTime").textContent =
+      String(Math.floor(totSec/60)).padStart(2,"0")+":"+String(totSec%60).padStart(2,"0");
+  }else{
+    $("#countdownIdle").style.display="block";
+    $("#countdownActive").style.display="none";
+  }
+
+  /* تنبيه صوتي عند الأذان وعند الإقامة */
+  if(todayTimes && s===0){
+    const cur = h*60+m;
+    for(const p of PRAYERS){
+      if(p.key==="sunrise") continue;
+      const stampA = lastDay+"-"+p.key+"-adhan", stampI = lastDay+"-"+p.key+"-iqamah";
+      if(cur===todayTimes[p.key] && lastAlertStamp!==stampA){ lastAlertStamp=stampA; playAdhan(); toast("حان الآن وقت أذان "+p.name); }
+      if(p.hasIqamah && cur===todayTimes[p.key]+settings.iqamah[p.key] && lastAlertStamp!==stampI){ lastAlertStamp=stampI; playIqamahTone(); toast("إقامة صلاة "+p.name); }
+    }
+    /* تحديث تظليل الصلاة القادمة كل دقيقة */
+    renderTable();
+  }
+}
+
+/* ---------- شريط الإشعارات ---------- */
+function updateTicker(){
+  const hj = hijriParts(new Date());
+  const ev = HIJRI_EVENTS[hj.month+"-"+hj.day];
+  const el = $("#tickerMain");
+  if(ev && settings.bellOn){
+    el.innerHTML = '<span class="event">' + ev + '</span> &nbsp;•&nbsp; ' + TICKER_MAIN_TEXT;
+  }else{
+    el.textContent = TICKER_MAIN_TEXT;
+  }
+}
+
+/* ---------- شاشة الضبط ---------- */
+function buildSettingsUI(){
+  const list = $("#iqamahList");
+  list.innerHTML = "";
+  for(const p of PRAYERS){
+    if(!p.hasIqamah) continue;
+    const row = document.createElement("div");
+    row.className = "iq-row";
+    row.innerHTML = '<label>'+p.name+'</label>' +
+      '<input class="num-input" data-key="'+p.key+'" type="number" min="0" max="90" inputmode="numeric" value="'+settings.iqamah[p.key]+'">';
+    list.appendChild(row);
+  }
+  const hj = hijriParts(new Date());
+  $("#hijriDayInput").value = hj.day;
+  $("#hijriMonthInput").value = hj.month;
+  $("#volSlider").value = settings.volume;
+  updateVolUI();
+  $("#soundBtn").textContent = "🔊 " + SOUNDS[settings.soundIndex % SOUNDS.length].name;
+}
+function updateVolUI(){
+  const v = $("#volSlider").value;
+  $("#volPct").textContent = v + "%";
+  $("#volSlider").style.setProperty("--fill", v+"%");
+}
+function applyHijriInputs(){
+  const wantDay = parseInt($("#hijriDayInput").value,10);
+  const wantMonth = parseInt($("#hijriMonthInput").value,10);
+  if(isNaN(wantDay)&&isNaN(wantMonth)) return;
+  /* ابحث عن إزاحة أيام تجعل التاريخ الهجري يطابق المطلوب (الأقرب لليوم الحالي) */
+  const num = new Intl.DateTimeFormat("en-u-ca-islamic-umalqura",{day:"numeric",month:"numeric"});
+  let bestOff = settings.hijriOffsetDays, bestScore = -Infinity;
+  for(let off=-400; off<=400; off++){
+    const d = new Date(Date.now() + off*86400000);
+    const parts={}; for(const p of num.formatToParts(d)) parts[p.type]=p.value;
+    const dd=parseInt(parts.day,10), mm=parseInt(parts.month,10);
+    const mOk = isNaN(wantMonth) ? true : mm===wantMonth;
+    const dOk = isNaN(wantDay) ? true : dd===wantDay;
+    if(mOk&&dOk){
+      const score = -Math.abs(off);
+      if(score>bestScore){bestScore=score;bestOff=off;}
+    }
+  }
+  if(bestScore>-Infinity) settings.hijriOffsetDays = bestOff;
+}
+
+/* ---------- التنقل والأحداث ---------- */
+function showScreen(id){
+  $("#mainScreen").classList.toggle("hidden", id!=="mainScreen");
+  $("#settingsScreen").classList.toggle("hidden", id!=="settingsScreen");
+  if(id==="settingsScreen") buildSettingsUI();
+}
+function refreshBellUI(){
+  updateAll(".js-bell", el=>{
+    el.textContent = settings.bellOn ? "🔔" : "🔕";
+    el.style.opacity = settings.bellOn ? 1 : .55;
+  });
+}
+function refreshFmtUI(){
+  updateAll(".js-fmt", el=>el.textContent = settings.use24h ? "24H" : "12H");
+}
+
+document.addEventListener("DOMContentLoaded", ()=>{
+  /* أزرار مشتركة */
+  updateAll(".js-power", el=>el.addEventListener("click", ()=>{
+    window.close();
+    setTimeout(()=>$("#farewell").classList.add("show"), 150);
+  }));
+  updateAll(".js-fmt", el=>el.addEventListener("click", ()=>{
+    settings.use24h = !settings.use24h; saveSettings();
+    refreshFmtUI(); renderTable(); tick();
+  }));
+  updateAll(".js-bell", el=>el.addEventListener("click", ()=>{
+    settings.bellOn = !settings.bellOn; saveSettings();
+    if(!settings.bellOn) stopAdhan();
+    refreshBellUI(); updateTicker();
+    toast(settings.bellOn ? "تم تفعيل الإشعارات والصوت" : "تم إيقاف الإشعارات والصوت");
+    if(settings.bellOn){ ensureAudio(); }
+  }));
+
+  $("#gotoSettings").addEventListener("click", ()=>{ ensureAudio(); showScreen("settingsScreen"); });
+
+  $("#volSlider").addEventListener("input", updateVolUI);
+  $("#soundBtn").addEventListener("click", ()=>{
+    if(adhanAudio){ stopAdhan(); } /* إيقاف المعاينة السابقة */
+    settings.soundIndex = (settings.soundIndex+1)%SOUNDS.length;
+    $("#soundBtn").textContent = "🔊 " + SOUNDS[settings.soundIndex].name;
+    settings.volume = parseInt($("#volSlider").value,10);
+    ensureAudio(); playAdhan();
+  });
+
+  $("#updateCalendar").addEventListener("click", async ()=>{
+    toast("جارٍ تحديث التقويم وأوقات الصلاة…");
+    locate(false);
+    try{ await fetchMinistryTable(); }catch(e){}
+    refreshTimes();
+    updateTicker();
+    if(ministryRow(new Date())) toast("تم تحديث البيانات");
+    else toast("تعذر جلب بيانات الوزارة — تم استخدام الحساب الفلكي");
+  });
+
+  $("#saveBtn").addEventListener("click", ()=>{
+    document.querySelectorAll("#iqamahList .num-input").forEach(inp=>{
+      const v = parseInt(inp.value,10);
+      if(!isNaN(v) && v>=0 && v<=90) settings.iqamah[inp.dataset.key] = v;
+    });
+    settings.volume = parseInt($("#volSlider").value,10);
+    applyHijriInputs();
+    saveSettings();
+    refreshTimes();
+    updateTicker();
+    toast("تم حفظ الإعدادات");
+    showScreen("mainScreen");
+  });
+
+  /* تهيئة */
+  updateAll(".js-wilaya", el=>el.textContent = settings.wilaya);
+  refreshBellUI();
+  refreshFmtUI();
+  refreshTimes();
+  updateTicker();
+  locate(false);
+  fetchMinistryTable().then(refreshTimes).catch(()=>{});
+  tick();
+  setInterval(tick, 1000);
+
+  /* PWA: عمل بدون إنترنت بعد أول تحميل */
+  if("serviceWorker" in navigator &&
+     (location.protocol==="https:" || location.hostname==="localhost")){
+    navigator.serviceWorker.register("sw.js").catch(()=>{});
+  }
+  /* إبقاء الشاشة مضاءة عند استخدامه كشاشة عرض دائمة */
+  async function requestWakeLock(){
+    try{ if("wakeLock" in navigator) await navigator.wakeLock.request("screen"); }catch(e){}
+  }
+  document.addEventListener("visibilitychange", ()=>{
+    if(document.visibilityState==="visible") requestWakeLock();
+  });
+  requestWakeLock();
+});
+</script>
+</body>
+</html>
