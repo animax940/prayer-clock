@@ -19,6 +19,10 @@
     --blue:#8fd6ff;
     --green:#7dffa0;
     --white:#ffffff;
+    /* لون الخلفية — يتغير من قرص الألوان (الافتراضي أحمر عنابي) */
+    --bg1:hsl(356 79% 43%);
+    --bg2:hsl(356 79% 31%);
+    --bg3:hsl(356 79% 17%);
   }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{height:100%;}
@@ -36,7 +40,7 @@
     max-width:100vw;max-height:100vh;
     container-type:size;overflow:hidden;
     background:
-      radial-gradient(130% 85% at 50% 28%, #c21823 0%, #8e1019 48%, #4d070d 100%);
+      radial-gradient(130% 85% at 50% 28%, var(--bg1) 0%, var(--bg2) 48%, var(--bg3) 100%);
     box-shadow:0 0 60px rgba(0,0,0,.85);
   }
   @media (max-aspect-ratio: 9/16){ .app{width:100vw;height:100vh;} }
@@ -257,15 +261,35 @@
   }
   .locpick .field:focus{outline:none;border-color:var(--gold-strong);}
   .locpick select.field{text-align:center;}
-  .locpick .act{
+  .locpick .act, .clrpick .act{
     width:100%;cursor:pointer;font-family:inherit;
     font-size:4.4cqw;font-weight:900;border-radius:5cqw;padding:1cqh 0;
     background:linear-gradient(180deg,#f3d98e,#c89b46);color:#3a2204;
     border:0.45cqw solid var(--gold);
   }
-  .locpick .act.dark{background:linear-gradient(180deg,#241007,#0d0402);color:var(--gold-strong);}
-  .locpick .act:active{transform:scale(.97);}
-  .locpick .hint{color:rgba(255,255,255,.7);font-size:3.2cqw;font-weight:600;text-align:center;line-height:1.5;}
+  .locpick .act.dark, .clrpick .act.dark{background:linear-gradient(180deg,#241007,#0d0402);color:var(--gold-strong);}
+  .locpick .act:active, .clrpick .act:active{transform:scale(.97);}
+  .locpick .hint, .clrpick .hint{color:rgba(255,255,255,.7);font-size:3.2cqw;font-weight:600;text-align:center;line-height:1.5;}
+
+  /* نافذة قرص الألوان */
+  .clrpick{
+    position:absolute;inset:0;z-index:62;display:none;
+    flex-direction:column;align-items:center;justify-content:center;gap:2.2cqh;
+    background:rgba(12,3,4,.96);padding:4cqh 8cqw;
+  }
+  .clrpick.show{display:flex;}
+  .clrpick .act{width:70%;}
+  .wheel-wrap{position:relative;width:66cqw;height:66cqw;touch-action:none;}
+  .wheel-wrap canvas{
+    width:100%;height:100%;border-radius:50%;display:block;
+    border:0.55cqw solid var(--gold);
+    box-shadow:0 0 2.4cqw rgba(238,203,122,.4);
+  }
+  .clr-knob{
+    position:absolute;width:9cqw;height:9cqw;border-radius:50%;
+    border:0.8cqw solid #fff;box-shadow:0 0 1.4cqw rgba(0,0,0,.85);
+    transform:translate(-50%,-50%);pointer-events:none;
+  }
 
   /* شاشة الوداع */
   .farewell{
@@ -418,6 +442,16 @@
     <button class="act dark" id="closeLoc">إغلاق</button>
   </div>
 
+  <!-- نافذة قرص الألوان -->
+  <div class="clrpick" id="clrPick">
+    <button class="act dark" id="closeClr">إغلاق</button>
+    <div class="wheel-wrap" id="wheelWrap">
+      <canvas id="clrWheel"></canvas>
+      <div class="clr-knob" id="clrKnob"></div>
+    </div>
+    <div class="hint">حرّك المؤشر داخل القرص لاختيار لون الخلفية،<br>ثم اضغط "حفظ" لتثبيته.</div>
+  </div>
+
   <!-- شاشة الوداع -->
   <div class="farewell" id="farewell">
     <div>في أمان الله</div>
@@ -503,7 +537,8 @@ const DEFAULTS = {
   use24h:true,
   bellOn:true,
   lat:23.588, lng:58.408, wilaya:"مسقط",
-  autoLocate:true   /* يصبح false عند اختيار الولاية يدوياً */
+  autoLocate:true,  /* يصبح false عند اختيار الولاية يدوياً */
+  bgHue:356, bgSat:79   /* لون الخلفية */
 };
 let settings = loadSettings();
 function loadSettings(){
@@ -981,7 +1016,87 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
   $("#gotoSettings").addEventListener("click", ()=>{ ensureAudio(); showScreen("settingsScreen"); });
 
-  /* ---- نافذة تحديد الموقع ---- */
+  /* ---- قرص الألوان: تغيير لون الخلفية ---- */
+function hslToRgb(h, s, l){
+  h = ((h % 360) + 360) % 360 / 360;
+  if(s === 0){ const v = Math.round(l*255); return [v,v,v]; }
+  const q = l < 0.5 ? l*(1+s) : l + s - l*s;
+  const p = 2*l - q;
+  const conv = t=>{
+    if(t < 0) t += 1; if(t > 1) t -= 1;
+    if(t < 1/6) return p + (q-p)*6*t;
+    if(t < 1/2) return q;
+    if(t < 2/3) return p + (q-p)*(2/3 - t)*6;
+    return p;
+  };
+  return [Math.round(conv(h+1/3)*255), Math.round(conv(h)*255), Math.round(conv(h-1/3)*255)];
+}
+/* نفس تدرّج التصميم الأصلي بثلاث درجات إضاءة، بأي درجة لون */
+function applyBg(h, s){
+  const r = document.documentElement.style;
+  r.setProperty("--bg1", "hsl("+h+" "+s+"% 43%)");
+  r.setProperty("--bg2", "hsl("+h+" "+s+"% 31%)");
+  r.setProperty("--bg3", "hsl("+h+" "+s+"% 17%)");
+}
+let pendingBg = {h: settings.bgHue, s: settings.bgSat};
+
+function drawWheel(){
+  const wrap = $("#wheelWrap"), c = $("#clrWheel");
+  const size = Math.round(wrap.getBoundingClientRect().width);
+  if(!size) return;
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const px = Math.round(size * dpr);
+  if(c.width === px) return;            /* مرسوم مسبقاً بنفس المقاس */
+  c.width = px; c.height = px;
+  const ctx = c.getContext("2d");
+  const img = ctx.createImageData(px, px);
+  const R = px/2;
+  for(let y=0; y<px; y++){
+    for(let x=0; x<px; x++){
+      const dx = x - R + 0.5, dy = y - R + 0.5;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      const i = (y*px + x) * 4;
+      if(dist > R){ img.data[i+3] = 0; continue; }
+      let ang = Math.atan2(dy, dx) * 180 / Math.PI;
+      if(ang < 0) ang += 360;
+      const rgb = hslToRgb(ang, Math.min(1, dist/R), 0.5);
+      img.data[i] = rgb[0]; img.data[i+1] = rgb[1]; img.data[i+2] = rgb[2];
+      img.data[i+3] = dist > R-1 ? Math.round(255*(R-dist)) : 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+}
+function placeKnob(){
+  const wrap = $("#wheelWrap");
+  const R = wrap.getBoundingClientRect().width / 2;
+  const rad = pendingBg.h * Math.PI / 180;
+  const dist = (pendingBg.s/100) * R;
+  const k = $("#clrKnob");
+  k.style.left = (R + Math.cos(rad)*dist) + "px";
+  k.style.top  = (R + Math.sin(rad)*dist) + "px";
+  k.style.background = "hsl("+pendingBg.h+" "+pendingBg.s+"% 50%)";
+}
+function pickColor(ev){
+  const r = $("#wheelWrap").getBoundingClientRect();
+  const R = r.width/2;
+  const dx = ev.clientX - r.left - R, dy = ev.clientY - r.top - R;
+  let ang = Math.atan2(dy, dx) * 180 / Math.PI;
+  if(ang < 0) ang += 360;
+  pendingBg = {
+    h: Math.round(ang),
+    s: Math.round(Math.min(1, Math.sqrt(dx*dx + dy*dy)/R) * 100)
+  };
+  applyBg(pendingBg.h, pendingBg.s);
+  placeKnob();
+}
+function openClrPick(){
+  pendingBg = {h: settings.bgHue, s: settings.bgSat};
+  $("#clrPick").classList.add("show");
+  drawWheel();
+  placeKnob();
+}
+
+/* ---- نافذة تحديد الموقع ---- */
   const sel = $("#wilayaSelect");
   const allNames = [...new Set([
     ...WILAYAT.map(w=>w[0]),
@@ -1028,6 +1143,38 @@ document.addEventListener("DOMContentLoaded", ()=>{
     $("#locPick").classList.remove("show");
   });
 
+  /* سحب المؤشر داخل القرص */
+  {
+    const wrap = $("#wheelWrap");
+    let dragging = false;
+    wrap.addEventListener("pointerdown", e=>{
+      dragging = true;
+      wrap.setPointerCapture(e.pointerId);
+      pickColor(e);
+      e.preventDefault();
+    });
+    wrap.addEventListener("pointermove", e=>{ if(dragging) pickColor(e); });
+    const end = e=>{
+      dragging = false;
+      if(wrap.hasPointerCapture && wrap.hasPointerCapture(e.pointerId))
+        wrap.releasePointerCapture(e.pointerId);
+    };
+    wrap.addEventListener("pointerup", end);
+    wrap.addEventListener("pointercancel", end);
+  }
+  $("#closeClr").addEventListener("click", ()=>$("#clrPick").classList.remove("show"));
+
+  /* لمس الخلفية: يوقف الأذان — وفي شاشة الضبط يفتح قرص الألوان */
+  $("#mainScreen").addEventListener("click", e=>{
+    if(e.target !== e.currentTarget) return;
+    stopAdhan();
+  });
+  $("#settingsScreen").addEventListener("click", e=>{
+    if(e.target !== e.currentTarget) return;
+    stopAdhan();
+    openClrPick();
+  });
+
   $("#autoLoc").addEventListener("click", ()=>{
     settings.autoLocate = true; saveSettings();
     locate(true);
@@ -1064,6 +1211,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
       if(!isNaN(v) && v>=0 && v<=90) settings.iqamah[inp.dataset.key] = v;
     });
     settings.volume = parseInt($("#volSlider").value,10);
+    settings.bgHue = pendingBg.h;
+    settings.bgSat = pendingBg.s;
     applyHijriInputs();
     saveSettings();
     refreshTimes();
@@ -1074,6 +1223,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
   /* تهيئة */
   updateAll(".js-wilaya", el=>el.textContent = settings.wilaya);
+  applyBg(settings.bgHue, settings.bgSat);
   refreshBellUI();
   refreshFmtUI();
   refreshTimes();
