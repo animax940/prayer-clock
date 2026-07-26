@@ -1075,6 +1075,14 @@ function placeKnob(){
   k.style.left = (R + Math.cos(rad)*dist) + "px";
   k.style.top  = (R + Math.sin(rad)*dist) + "px";
   k.style.background = "hsl("+pendingBg.h+" "+pendingBg.s+"% 50%)";
+
+  /* زر الإغلاق يعرض معاينة اللون المختار */
+  const btn = $("#closeClr");
+  btn.style.background = "linear-gradient(180deg, hsl("+pendingBg.h+" "+pendingBg.s+"% 48%), "
+                       + "hsl("+pendingBg.h+" "+pendingBg.s+"% 30%))";
+  const rgb = hslToRgb(pendingBg.h, pendingBg.s/100, 0.39);
+  const lum = 0.299*rgb[0] + 0.587*rgb[1] + 0.114*rgb[2];
+  btn.style.color = lum > 140 ? "#2a1500" : "#ffffff";
 }
 function pickColor(ev){
   const r = $("#wheelWrap").getBoundingClientRect();
