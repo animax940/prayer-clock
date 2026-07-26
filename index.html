@@ -25,7 +25,7 @@
     --bg3:hsl(356 79% 17%);
   }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-  html,body{height:100%;}
+  html,body{height:100%;height:100svh;overscroll-behavior:none;}
   body{
     background:#120304;
     display:flex;align-items:center;justify-content:center;
@@ -35,15 +35,18 @@
   /* ====== الإطار الطولي 9:16 ====== */
   .app{
     position:relative;
+    /* svh = الارتفاع المرئي فعلاً أسفل أشرطة المتصفح (مع بديل للمتصفحات القديمة) */
     height:100vh;
+    height:100svh;
     width:calc(100vh * 9 / 16);
-    max-width:100vw;max-height:100vh;
+    width:calc(100svh * 9 / 16);
+    max-width:100vw;max-height:100vh;max-height:100svh;
     container-type:size;overflow:hidden;
     background:
       radial-gradient(130% 85% at 50% 28%, var(--bg1) 0%, var(--bg2) 48%, var(--bg3) 100%);
     box-shadow:0 0 60px rgba(0,0,0,.85);
   }
-  @media (max-aspect-ratio: 9/16){ .app{width:100vw;height:100vh;} }
+  @media (max-aspect-ratio: 9/16){ .app{width:100vw;height:100vh;height:100svh;} }
   /* نقوش هندسية إسلامية خفيفة */
   .app::before{
     content:"";position:absolute;inset:0;pointer-events:none;opacity:.10;z-index:1;
@@ -60,7 +63,8 @@
   .screen{
     position:absolute;inset:0;z-index:3;
     display:flex;flex-direction:column;align-items:center;
-    padding:1cqh 9.5cqw 1.2cqh;
+    padding:calc(1cqh + env(safe-area-inset-top,0px)) 9.5cqw
+            calc(1.2cqh + env(safe-area-inset-bottom,0px));
     opacity:1;transition:opacity .35s ease;
   }
   .screen.hidden{opacity:0;pointer-events:none;}
