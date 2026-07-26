@@ -133,9 +133,9 @@
   }
   .ptable .head{color:var(--gold-strong);font-size:5cqw;font-weight:900;text-align:center;padding-bottom:.2cqh;}
   .ptable .cell{text-align:center;font-size:5.4cqw;font-weight:900;direction:ltr;line-height:1.2;}
-  .ptable .pname{color:var(--gold-strong);font-size:5.2cqw;font-weight:900;text-align:center;line-height:1.2;}
-  .ptable .adhan{color:var(--blue);text-shadow:0 0 1.2cqw rgba(143,214,255,.35);}
-  .ptable .iqamah{color:var(--green);text-shadow:0 0 1.2cqw rgba(125,255,160,.35);}
+  .ptable .pname{color:var(--c-pname,var(--gold-strong));font-size:5.2cqw;font-weight:900;text-align:center;line-height:1.2;}
+  .ptable .adhan{color:var(--c-adhan,var(--blue));text-shadow:0 0 1.2cqw rgba(143,214,255,.35);}
+  .ptable .iqamah{color:var(--c-iqamah,var(--green));text-shadow:0 0 1.2cqw rgba(125,255,160,.35);}
   .ptable .row-hl{position:relative;}
   .ptable .row-hl::before{
     content:"";position:absolute;inset:-0.4cqh -1cqw;border-radius:2cqw;z-index:-1;
@@ -161,7 +161,7 @@
   .ticker-inner{
     flex-shrink:0;white-space:nowrap;padding-left:100%;
     animation:tickmove 22s linear infinite reverse;
-    color:var(--white);font-size:4.4cqw;font-weight:800;line-height:1.3;
+    color:var(--c-ticker,var(--white));font-size:4.4cqw;font-weight:800;line-height:1.3;
   }
   @keyframes tickmove{to{transform:translateX(-100%);}}
   .ticker-inner .event{color:var(--green);}
@@ -295,6 +295,39 @@
     transform:translate(-50%,-50%);pointer-events:none;
   }
 
+  /* نافذة التحكم العام (للمشرف فقط) */
+  .adminpick{
+    position:absolute;inset:0;z-index:70;display:none;
+    flex-direction:column;gap:1.1cqh;overflow-y:auto;
+    background:rgba(8,2,3,.985);padding:3cqh 6cqw;
+  }
+  .adminpick.show{display:flex;}
+  .adminpick h3{color:var(--gold-strong);font-size:5cqw;font-weight:900;text-align:center;}
+  .adminpick label{color:var(--blue);font-size:3.5cqw;font-weight:800;display:block;margin-bottom:.35cqh;}
+  .adminpick .field{
+    width:100%;background:#000;color:var(--white);
+    font-size:3.8cqw;font-weight:700;font-family:inherit;
+    border:0.4cqw solid var(--gold-dim);border-radius:2cqw;padding:.7cqh 2.5cqw;
+  }
+  .adminpick .field:focus{outline:none;border-color:var(--gold-strong);}
+  .adminpick textarea.field{min-height:9cqh;resize:vertical;line-height:1.6;}
+  .adminpick .row{display:flex;gap:3cqw;}
+  .adminpick .row > div{flex:1;}
+  .adminpick input[type=color]{
+    width:100%;height:6cqh;padding:0;border:0.4cqw solid var(--gold-dim);
+    border-radius:2cqw;background:#000;cursor:pointer;
+  }
+  .adminpick .act{
+    width:100%;cursor:pointer;font-family:inherit;
+    font-size:4.2cqw;font-weight:900;border-radius:5cqw;padding:.9cqh 0;
+    background:linear-gradient(180deg,#f3d98e,#c89b46);color:#3a2204;
+    border:0.45cqw solid var(--gold);
+  }
+  .adminpick .act.dark{background:linear-gradient(180deg,#241007,#0d0402);color:var(--gold-strong);}
+  .adminpick .act:active{transform:scale(.97);}
+  .adminpick .hint{color:rgba(255,255,255,.65);font-size:3cqw;font-weight:600;line-height:1.6;text-align:center;}
+  .adminpick .status{font-size:3.4cqw;font-weight:800;text-align:center;min-height:4cqh;}
+
   /* شاشة الوداع */
   .farewell{
     position:absolute;inset:0;z-index:50;display:none;
@@ -420,7 +453,7 @@
       </div>
     </div>
 
-    <div class="ticker"><div class="ticker-inner">تصميم أحمد السعيدي, اللهم اغفر لي ولوالدي ولمن استخدم هذا التطبيق ودعا لنا بالخير ولجميع المسلمين</div></div>
+    <div class="ticker"><div class="ticker-inner" id="tickerSettings">تصميم أحمد السعيدي, اللهم اغفر لي ولوالدي ولمن استخدم هذا التطبيق ودعا لنا بالخير ولجميع المسلمين</div></div>
 
     <button class="bottom-btn" id="saveBtn">💾 حفظ</button>
   </div>
@@ -454,6 +487,53 @@
       <div class="clr-knob" id="clrKnob"></div>
     </div>
     <div class="hint">حرّك المؤشر داخل القرص لاختيار لون الخلفية،<br>ثم اضغط "حفظ" لتثبيته.</div>
+  </div>
+
+  <!-- نافذة التحكم العام: تفتح بالضغط المطوّل على الساعة في الشاشة الرئيسية -->
+  <div class="adminpick" id="adminPick">
+    <h3>التحكم العام</h3>
+    <div class="hint">ما تنشره هنا يصل إلى كل من ثبّت التطبيق على جهازه.</div>
+
+    <div class="row">
+      <div>
+        <label>اليوم الهجري</label>
+        <input class="field" id="adDay" type="number" min="1" max="30" inputmode="numeric">
+      </div>
+      <div>
+        <label>الشهر الهجري</label>
+        <input class="field" id="adMonth" type="number" min="1" max="12" inputmode="numeric">
+      </div>
+    </div>
+
+    <div>
+      <label>نص الشريط — الشاشة الرئيسية</label>
+      <textarea class="field" id="adTickerMain"></textarea>
+    </div>
+    <div>
+      <label>نص الشريط — شاشة الضبط</label>
+      <textarea class="field" id="adTickerSettings"></textarea>
+    </div>
+
+    <div class="row">
+      <div><label>لون الشريط</label><input type="color" id="adColTicker"></div>
+      <div><label>لون الأذان</label><input type="color" id="adColAdhan"></div>
+    </div>
+    <div class="row">
+      <div><label>لون الإقامة</label><input type="color" id="adColIqamah"></div>
+      <div><label>لون أسماء الصلوات</label><input type="color" id="adColName"></div>
+    </div>
+
+    <div>
+      <label>مفتاح النشر (يُحفظ في جهازك وحدك)</label>
+      <input class="field" id="adToken" type="password" dir="ltr" autocomplete="off"
+             placeholder="github_pat_...">
+    </div>
+
+    <div class="status" id="adStatus"></div>
+    <button class="act" id="adPublish">نشر للجميع</button>
+    <button class="act dark" id="adPreview">معاينة على جهازي فقط</button>
+    <button class="act dark" id="adClose">إغلاق</button>
+    <div class="hint">التغيير يظهر عند الآخرين خلال دقيقة تقريباً، وعند فتحهم التطبيق.</div>
   </div>
 
   <!-- شاشة الوداع -->
@@ -518,7 +598,8 @@ const HIJRI_EVENTS = {
   "8-15":"🌙 ليلة النصف من شعبان"
 };
 
-const TICKER_MAIN_TEXT = "سبحان الله والحمدلله ولا اله الا الله والله اكبر ولا حول ولاقوة الا بالله";
+let TICKER_MAIN_TEXT = "سبحان الله والحمدلله ولا اله الا الله والله اكبر ولا حول ولاقوة الا بالله";
+let TICKER_SETTINGS_TEXT = "تصميم أحمد السعيدي, اللهم اغفر لي ولوالدي ولمن استخدم هذا التطبيق ودعا لنا بالخير ولجميع المسلمين";
 const PRAYERS = [
   {key:"fajr",   name:"الفجر",  hasIqamah:true},
   {key:"sunrise",name:"الشروق", hasIqamah:false},
@@ -554,6 +635,64 @@ function loadSettings(){
 }
 function saveSettings(){
   localStorage.setItem("prayerClockSettings", JSON.stringify(settings));
+}
+
+/* ============================================================
+   الإعدادات المركزية: ملف config.json على الموقع يقرأه كل جهاز،
+   ويطبّق ما فيه عند صدور نسخة أحدث من آخر نسخة طُبّقت محلياً.
+   ============================================================ */
+const CONFIG_URL = "config.json";
+const REPO = "animax940/prayer-clock";
+
+function applyRemoteConfig(cfg){
+  if(!cfg || typeof cfg !== "object") return false;
+  const seen = localStorage.getItem("configStamp");
+  const stamp = String(cfg.updatedAt || "");
+  const isNew = stamp && stamp !== seen;
+
+  /* النصوص والألوان تُطبَّق دائماً (لا يعدّلها المستخدم محلياً) */
+  if(typeof cfg.tickerMain === "string" && cfg.tickerMain.trim())
+    TICKER_MAIN_TEXT = cfg.tickerMain;
+  if(typeof cfg.tickerSettings === "string" && cfg.tickerSettings.trim()){
+    TICKER_SETTINGS_TEXT = cfg.tickerSettings;
+    const el = document.getElementById("tickerSettings");
+    if(el) el.textContent = TICKER_SETTINGS_TEXT;
+  }
+  const c = cfg.colors || {};
+  const setVar = (name, val)=>{
+    if(typeof val === "string" && /^#[0-9a-fA-F]{3,8}$/.test(val))
+      document.documentElement.style.setProperty(name, val);
+  };
+  setVar("--c-ticker", c.ticker);
+  setVar("--c-adhan",  c.adhan);
+  setVar("--c-iqamah", c.iqamah);
+  setVar("--c-pname",  c.prayerName);
+
+  /* التاريخ الهجري يُفرض فقط عند صدور نسخة جديدة، حتى لا نلغي تعديل المستخدم */
+  if(isNew && typeof cfg.hijriOffsetDays === "number"){
+    settings.hijriOffsetDays = cfg.hijriOffsetDays;
+    saveSettings();
+  }
+  if(stamp) localStorage.setItem("configStamp", stamp);
+  return true;
+}
+
+async function fetchRemoteConfig(){
+  try{
+    const r = await fetch(CONFIG_URL + "?t=" + Date.now(), {cache:"no-store"});
+    if(!r.ok) throw new Error("http-" + r.status);
+    const cfg = await r.json();
+    localStorage.setItem("configCache", JSON.stringify(cfg));
+    applyRemoteConfig(cfg);
+    if(typeof refreshTimes === "function") refreshTimes();
+    updateTicker();
+    tick();
+    return cfg;
+  }catch(e){
+    /* بلا إنترنت: نستخدم آخر نسخة محفوظة */
+    try{ applyRemoteConfig(JSON.parse(localStorage.getItem("configCache"))); }catch(_){}
+    return null;
+  }
 }
 
 /* ---------- حساب أوقات الصلاة فلكياً ---------- */
@@ -1176,6 +1315,133 @@ function openClrPick(){
   }
   $("#closeClr").addEventListener("click", ()=>$("#clrPick").classList.remove("show"));
 
+  /* ---- نافذة التحكم العام (للمشرف) ---- */
+  function currentHijriNoOffset(){
+    const save = settings.hijriOffsetDays;
+    settings.hijriOffsetDays = 0;
+    const r = hijriParts(new Date());
+    settings.hijriOffsetDays = save;
+    return r;
+  }
+  function offsetForHijri(wantDay, wantMonth){
+    if(isNaN(wantDay) && isNaN(wantMonth)) return settings.hijriOffsetDays;
+    const num = new Intl.DateTimeFormat("en-u-ca-islamic-umalqura",
+      {day:"numeric", month:"numeric"});
+    for(let step=0; step<=200; step++){
+      for(const off of (step===0 ? [0] : [step, -step])){
+        const p = {};
+        for(const q of num.formatToParts(new Date(Date.now() + off*86400000)))
+          p[q.type] = q.value;
+        const dOk = isNaN(wantDay)   ? true : +p.day   === wantDay;
+        const mOk = isNaN(wantMonth) ? true : +p.month === wantMonth;
+        if(dOk && mOk) return off;
+      }
+    }
+    return settings.hijriOffsetDays;
+  }
+  function buildConfigFromPanel(){
+    const day   = parseInt($("#adDay").value, 10);
+    const month = parseInt($("#adMonth").value, 10);
+    return {
+      updatedAt: new Date().toISOString(),
+      hijriOffsetDays: offsetForHijri(day, month),
+      tickerMain: $("#adTickerMain").value.trim() || TICKER_MAIN_TEXT,
+      tickerSettings: $("#adTickerSettings").value.trim() || TICKER_SETTINGS_TEXT,
+      colors: {
+        ticker:     $("#adColTicker").value,
+        adhan:      $("#adColAdhan").value,
+        iqamah:     $("#adColIqamah").value,
+        prayerName: $("#adColName").value
+      }
+    };
+  }
+  function cssVarOr(name, fallback){
+    const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return /^#[0-9a-fA-F]{6}$/.test(v) ? v : fallback;
+  }
+  function openAdmin(){
+    const hj = hijriParts(new Date());
+    $("#adDay").value = hj.day;
+    $("#adMonth").value = hj.month;
+    $("#adTickerMain").value = TICKER_MAIN_TEXT;
+    $("#adTickerSettings").value = TICKER_SETTINGS_TEXT;
+    $("#adColTicker").value = cssVarOr("--c-ticker", "#ffffff");
+    $("#adColAdhan").value  = cssVarOr("--c-adhan",  "#8fd6ff");
+    $("#adColIqamah").value = cssVarOr("--c-iqamah", "#7dffa0");
+    $("#adColName").value   = cssVarOr("--c-pname",  "#f6dd95");
+    $("#adToken").value = localStorage.getItem("adminToken") || "";
+    $("#adStatus").textContent = "";
+    $("#adminPick").classList.add("show");
+  }
+  function adStatus(msg, ok){
+    const el = $("#adStatus");
+    el.textContent = msg;
+    el.style.color = ok === true ? "var(--green)" : ok === false ? "#ff9a9a" : "var(--gold-strong)";
+  }
+  function toBase64Utf8(str){
+    const bytes = new TextEncoder().encode(str);
+    let bin = "";
+    for(const b of bytes) bin += String.fromCharCode(b);
+    return btoa(bin);
+  }
+  async function publishConfig(cfg){
+    const token = $("#adToken").value.trim();
+    if(!token) throw new Error("no-token");
+    localStorage.setItem("adminToken", token);
+    const api = "https://api.github.com/repos/" + REPO + "/contents/config.json";
+    const headers = {
+      "Authorization": "Bearer " + token,
+      "Accept": "application/vnd.github+json"
+    };
+    let sha = null;
+    const cur = await fetch(api, {headers, cache:"no-store"});
+    if(cur.ok) sha = (await cur.json()).sha;
+    else if(cur.status === 401) throw new Error("bad-token");
+    const payload = {
+      message: "تحديث الإعدادات العامة من التطبيق",
+      content: toBase64Utf8(JSON.stringify(cfg, null, 2))
+    };
+    if(sha) payload.sha = sha;
+    const r = await fetch(api, {method:"PUT", headers, body: JSON.stringify(payload)});
+    if(!r.ok) throw new Error("http-" + r.status);
+  }
+
+  $("#adPreview").addEventListener("click", ()=>{
+    applyRemoteConfig(buildConfigFromPanel());
+    refreshTimes(); updateTicker(); tick();
+    adStatus("طُبّقت على جهازك فقط — لم تُنشر بعد");
+  });
+  $("#adClose").addEventListener("click", ()=>$("#adminPick").classList.remove("show"));
+  $("#adPublish").addEventListener("click", async ()=>{
+    const cfg = buildConfigFromPanel();
+    adStatus("جارٍ النشر…");
+    try{
+      await publishConfig(cfg);
+      applyRemoteConfig(cfg);
+      refreshTimes(); updateTicker(); tick();
+      adStatus("تم النشر ✓ سيصل للجميع خلال دقيقة", true);
+    }catch(e){
+      const m = String(e.message);
+      adStatus(
+        m === "no-token"  ? "أدخل مفتاح النشر أولاً" :
+        m === "bad-token" ? "المفتاح غير صالح أو منتهي" :
+        m.startsWith("http-403") ? "المفتاح لا يملك صلاحية الكتابة" :
+        "تعذر النشر — تحقق من الإنترنت والمفتاح", false);
+    }
+  });
+
+  /* الحركة السرية: ضغط مطوّل ثانيتين على الساعة في الشاشة الرئيسية */
+  {
+    const clock = $("#mainScreen .js-clock");
+    let timer = null;
+    const start = ()=>{ timer = setTimeout(openAdmin, 2000); };
+    const cancel = ()=>{ clearTimeout(timer); };
+    clock.addEventListener("pointerdown", start);
+    clock.addEventListener("pointerup", cancel);
+    clock.addEventListener("pointerleave", cancel);
+    clock.addEventListener("pointercancel", cancel);
+  }
+
   /* لمس الخلفية: يوقف الأذان — وفي شاشة الضبط يفتح قرص الألوان */
   $("#mainScreen").addEventListener("click", e=>{
     if(e.target !== e.currentTarget) return;
@@ -1244,6 +1510,13 @@ function openClrPick(){
   fetchMinistryTable().then(refreshTimes).catch(()=>{});
   tick();
   setInterval(tick, 1000);
+
+  /* الإعدادات المركزية: عند الفتح، وكل ساعة، وعند العودة للتطبيق */
+  fetchRemoteConfig();
+  setInterval(fetchRemoteConfig, 3600000);
+  document.addEventListener("visibilitychange", ()=>{
+    if(document.visibilityState === "visible") fetchRemoteConfig();
+  });
 
   /* PWA: عمل بدون إنترنت بعد أول تحميل */
   if("serviceWorker" in navigator &&

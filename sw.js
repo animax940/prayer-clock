@@ -1,5 +1,5 @@
 /* منبه الصلاة — Service Worker: عمل كامل بدون إنترنت بعد أول تحميل */
-const CACHE = "prayer-clock-v7";
+const CACHE = "prayer-clock-v8";
 const ASSETS = [
   "./",
   "index.html",
@@ -34,9 +34,12 @@ self.addEventListener("fetch", e => {
   /* الطلبات الخارجية (مثل خدمة العناوين) تذهب للشبكة مباشرة — تخزينها
      يخلط النتائج لأن التخزين هنا يتجاهل معاملات الرابط. */
   if (new URL(e.request.url).origin !== self.location.origin) return;
+  /* الإعدادات المركزية دائماً من الشبكة حتى تصل تغييرات المشرف فوراً */
+  const path = new URL(e.request.url).pathname;
   const isPage = e.request.mode === "navigate" ||
                  e.request.destination === "document" ||
-                 new URL(e.request.url).pathname.endsWith(".html");
+                 path.endsWith(".html") ||
+                 path.endsWith("config.json");
 
   if (isPage) {
     e.respondWith(
