@@ -1,13 +1,14 @@
 /* منبه الصلاة — Service Worker: عمل كامل بدون إنترنت بعد أول تحميل */
-const CACHE = "prayer-clock-v6";
+const CACHE = "prayer-clock-v7";
 const ASSETS = [
   "./",
   "index.html",
   "times_data.js",
   "manifest.webmanifest",
-  "icon.svg",
   "icon-192.png",
   "icon-512.png",
+  "icon-maskable-192.png",
+  "icon-maskable-512.png",
   "sounds/adhan1.mp3",
   "sounds/adhan2.mp3"
 ];

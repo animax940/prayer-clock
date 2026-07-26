@@ -103,15 +103,87 @@ def draw_icon(size):
     return img.resize((size, size), Image.LANCZOS)
 
 
+def fill_rounded_corners(img, white_thr=205):
+    """
+    كثير من الأيقونات الجاهزة تأتي بزوايا بيضاء خارج المربع المستدير.
+
+    نحدّد المنطقة البيضاء المتصلة بالزوايا فقط (حتى لا نمسّ العناصر الفاتحة
+    داخل التصميم)، ثم نملؤها بامتداد ألوان الحافة المجاورة لتبدو طبيعية.
+    """
+    from collections import deque
+
+    px = img.load()
+    n = img.size[0]
+    is_white = lambda p: p[0] >= white_thr and p[1] >= white_thr and p[2] >= white_thr
+
+    # 1) تحديد البياض المتصل بالزوايا
+    outside = bytearray(n * n)
+    q = deque()
+    for sx, sy in ((0, 0), (n-1, 0), (0, n-1), (n-1, n-1)):
+        if is_white(px[sx, sy]) and not outside[sy*n + sx]:
+            outside[sy*n + sx] = 1
+            q.append((sx, sy))
+    while q:
+        x, y = q.popleft()
+        for nx, ny in ((x+1, y), (x-1, y), (x, y+1), (x, y-1)):
+            if 0 <= nx < n and 0 <= ny < n and not outside[ny*n + nx] \
+                    and is_white(px[nx, ny]):
+                outside[ny*n + nx] = 1
+                q.append((nx, ny))
+    total = sum(outside)
+    if not total:
+        return 0
+
+    # 2) تعبئة تدريجية من الحافة إلى الداخل بلون الجار السليم
+    q = deque()
+    for i in range(n * n):
+        if not outside[i]:
+            continue
+        x, y = i % n, i // n
+        for nx, ny in ((x+1, y), (x-1, y), (x, y+1), (x, y-1)):
+            if 0 <= nx < n and 0 <= ny < n and not outside[ny*n + nx]:
+                q.append((x, y, nx, ny))
+                break
+    while q:
+        x, y, sx, sy = q.popleft()
+        if not outside[y*n + x]:
+            continue
+        px[x, y] = px[sx, sy]
+        outside[y*n + x] = 0
+        for nx, ny in ((x+1, y), (x-1, y), (x, y+1), (x, y-1)):
+            if 0 <= nx < n and 0 <= ny < n and outside[ny*n + nx]:
+                q.append((nx, ny, x, y))
+    return total
+
+
 def from_photo(path):
-    """قصّ صورة المستخدم مربعاً وتصديرها بكل المقاسات."""
+    """تحويل صورة جاهزة إلى أيقونات التطبيق بكل المقاسات."""
     src = Image.open(path).convert("RGBA")
     w, h = src.size
     side = min(w, h)
     src = src.crop(((w - side) // 2, (h - side) // 2,
                     (w - side) // 2 + side, (h - side) // 2 + side))
+
+    # الزوايا الشفافة مطلوبة في الأيقونات، فلا نعالجها إلا إن كانت بيضاء صلبة
+    if src.getpixel((1, 1))[3] > 250:
+        fixed = fill_rounded_corners(src)
+        print(f"معالجة الزوايا البيضاء: {fixed} بكسل")
+    else:
+        print("الزوايا شفافة أصلاً — تُركت كما هي")
+
+    # لون الخلفية للنسخة المحمية من القص (من منتصف الحافة العليا)
+    base = src.getpixel((side // 2, int(side * 0.02)))[:3]
+
     for s in SIZES:
         src.resize((s, s), Image.LANCZOS).save(ROOT / f"icon-{s}.png")
+        # نسخة أندرويد القابلة للقص: المحتوى داخل 78% حتى لا يُقصّ الإطار
+        m = Image.new("RGBA", (s, s), base + (255,))
+        inner = round(s * 0.78)
+        small = src.resize((inner, inner), Image.LANCZOS)
+        # نمرر الصورة كقناع حتى تُدمج الزوايا الشفافة مع الخلفية بدل أن تُنسخ
+        m.paste(small, ((s - inner) // 2, (s - inner) // 2), small)
+        m.save(ROOT / f"icon-maskable-{s}.png")
+        print(f"icon-{s}.png + icon-maskable-{s}.png ✓")
     print(f"تم إنشاء الأيقونات من {Path(path).name}")
 
 
