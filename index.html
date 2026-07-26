@@ -90,11 +90,15 @@
 
   /* الموقع */
   .location{
-    display:flex;align-items:center;gap:1.5cqw;color:var(--white);
-    font-size:6cqw;font-weight:900;margin-top:-2cqh;
+    width:100%;min-height:6.95cqh;
+    display:flex;align-items:center;justify-content:center;
+    color:var(--white);font-size:6cqw;font-weight:900;margin-top:-2cqh;
     text-shadow:0 0 1.4cqw rgba(255,255,255,.35);
   }
-  .location .pin{font-size:4.6cqw;}
+  #settingsScreen .location{cursor:pointer;}
+  #settingsScreen .location .js-wilaya{
+    border-bottom:0.4cqw dashed rgba(238,203,122,.75);padding-bottom:.2cqh;
+  }
 
   /* الساعة */
   .clock-wrap{display:flex;align-items:baseline;gap:2cqw;direction:ltr;margin-top:0;}
@@ -234,6 +238,32 @@
   #settingsScreen .bottom-btn{margin-top:0;padding:1.2cqh 9cqw;}
   #settingsScreen .ticker{margin-bottom:1.4cqh;}
 
+  /* نافذة تحديد الموقع */
+  .locpick{
+    position:absolute;inset:0;z-index:60;display:none;
+    flex-direction:column;justify-content:center;gap:1.2cqh;
+    background:rgba(12,3,4,.96);padding:4cqh 8cqw;
+  }
+  .locpick.show{display:flex;}
+  .locpick h3{color:var(--gold-strong);font-size:5.4cqw;font-weight:900;text-align:center;}
+  .locpick label{color:var(--blue);font-size:3.9cqw;font-weight:800;display:block;margin-bottom:.5cqh;}
+  .locpick .field{
+    width:100%;background:#000;color:var(--white);
+    font-size:4.2cqw;font-weight:800;font-family:inherit;
+    border:0.45cqw solid var(--gold-dim);border-radius:2.4cqw;padding:.9cqh 3cqw;
+  }
+  .locpick .field:focus{outline:none;border-color:var(--gold-strong);}
+  .locpick select.field{text-align:center;}
+  .locpick .act{
+    width:100%;cursor:pointer;font-family:inherit;
+    font-size:4.4cqw;font-weight:900;border-radius:5cqw;padding:1cqh 0;
+    background:linear-gradient(180deg,#f3d98e,#c89b46);color:#3a2204;
+    border:0.45cqw solid var(--gold);
+  }
+  .locpick .act.dark{background:linear-gradient(180deg,#241007,#0d0402);color:var(--gold-strong);}
+  .locpick .act:active{transform:scale(.97);}
+  .locpick .hint{color:rgba(255,255,255,.7);font-size:3.2cqw;font-weight:600;text-align:center;line-height:1.5;}
+
   /* شاشة الوداع */
   .farewell{
     position:absolute;inset:0;z-index:50;display:none;
@@ -284,7 +314,7 @@
       </div>
     </div>
 
-    <div class="location"><span class="pin">📍</span><span class="js-wilaya">مسقط</span></div>
+    <div class="location"><span class="js-wilaya">مسقط</span></div>
 
     <div class="clock-wrap">
       <div class="clock js-clock">--:--<span class="sec">:--</span></div>
@@ -327,7 +357,7 @@
       </div>
     </div>
 
-    <div class="location"><span class="pin">📍</span><span class="js-wilaya">مسقط</span></div>
+    <div class="location"><span class="js-wilaya">مسقط</span></div>
 
     <div class="clock-wrap">
       <div class="clock js-clock">--:--<span class="sec">:--</span></div>
@@ -362,6 +392,27 @@
     <div class="ticker"><div class="ticker-inner">تصميم أحمد السعيدي, اللهم اغفر لي ولوالدي ولمن استخدم هذا التطبيق ودعا لنا بالخير ولجميع المسلمين</div></div>
 
     <button class="bottom-btn" id="saveBtn">💾 حفظ</button>
+  </div>
+
+  <!-- نافذة تحديد الموقع -->
+  <div class="locpick" id="locPick">
+    <h3>تحديد الموقع</h3>
+
+    <div>
+      <label>اختيار الولاية يدوياً</label>
+      <select class="field" id="wilayaSelect"></select>
+    </div>
+
+    <div>
+      <label>أو الصق الإحداثيات من خرائط هاتفك</label>
+      <input class="field" id="coordsInput" type="text" inputmode="decimal"
+             placeholder="23.5859, 58.4059" dir="ltr">
+      <div class="hint">افتح موقعك في خرائط جوجل، اضغط مطولاً على النقطة، انسخ الإحداثيات والصقها هنا.</div>
+    </div>
+
+    <button class="act" id="applyLoc">تطبيق</button>
+    <button class="act dark" id="autoLoc">استخدام موقع الهاتف تلقائياً</button>
+    <button class="act dark" id="closeLoc">إغلاق</button>
   </div>
 
   <!-- شاشة الوداع -->
@@ -448,7 +499,8 @@ const DEFAULTS = {
   soundIndex:0,
   use24h:true,
   bellOn:true,
-  lat:23.588, lng:58.408, wilaya:"مسقط"
+  lat:23.588, lng:58.408, wilaya:"مسقط",
+  autoLocate:true   /* يصبح false عند اختيار الولاية يدوياً */
 };
 let settings = loadSettings();
 function loadSettings(){
@@ -664,7 +716,20 @@ async function reverseWilaya(lat, lng){
   } finally { clearTimeout(timer); }
 }
 
+/* تطبيق ولاية محددة (يدوياً أو تلقائياً) */
+function applyWilaya(name, opts){
+  settings.wilaya = name;
+  if(opts && opts.manual) settings.autoLocate = false;
+  const w = WILAYAT.find(x=>x[0]===name);
+  if(w){ settings.lat = w[1]; settings.lng = w[2]; }
+  saveSettings();
+  updateAll(".js-wilaya", el=>el.textContent = name);
+  refreshTimes();
+  fetchMinistryTable().then(refreshTimes).catch(()=>{});
+}
+
 function locate(showMsg){
+  if(!settings.autoLocate && !showMsg) return;   /* لا نلغي الاختيار اليدوي */
   if(!navigator.geolocation){ if(showMsg) toast("خدمة الموقع غير متوفرة"); return; }
   navigator.geolocation.getCurrentPosition(async pos=>{
     settings.lat = pos.coords.latitude;
@@ -672,11 +737,11 @@ function locate(showMsg){
     let name = null;
     try{ name = await reverseWilaya(settings.lat, settings.lng); }catch(e){}
     if(!name) name = nearestWilaya(settings.lat, settings.lng)[0];
-    settings.wilaya = name;
+    const lat = settings.lat, lng = settings.lng;
+    settings.autoLocate = true;
+    applyWilaya(name);
+    settings.lat = lat; settings.lng = lng;   /* نُبقي إحداثيات الجهاز الدقيقة */
     saveSettings();
-    updateAll(".js-wilaya", el=>el.textContent = name);
-    refreshTimes();
-    fetchMinistryTable().then(refreshTimes).catch(()=>{});
     if(showMsg) toast("تم تحديد الموقع: " + name);
   }, ()=>{ if(showMsg) toast("تعذر تحديد الموقع — يُعرض آخر موقع محفوظ"); },
   {enableHighAccuracy:true, timeout:10000, maximumAge:600000});
@@ -912,6 +977,59 @@ document.addEventListener("DOMContentLoaded", ()=>{
   }));
 
   $("#gotoSettings").addEventListener("click", ()=>{ ensureAudio(); showScreen("settingsScreen"); });
+
+  /* ---- نافذة تحديد الموقع ---- */
+  const sel = $("#wilayaSelect");
+  const allNames = [...new Set([
+    ...WILAYAT.map(w=>w[0]),
+    ...(window.TIMES_DATA ? Object.keys(window.TIMES_DATA) : []),
+    ...(window.TIMES_PACK ? Object.keys(window.TIMES_PACK) : [])
+  ])].sort((a,b)=>a.localeCompare(b,"ar"));
+  for(const n of allNames){
+    const o = document.createElement("option");
+    o.value = n; o.textContent = n;
+    sel.appendChild(o);
+  }
+  function openLocPick(){
+    sel.value = allNames.includes(settings.wilaya) ? settings.wilaya : allNames[0];
+    $("#coordsInput").value = settings.lat.toFixed(4) + ", " + settings.lng.toFixed(4);
+    $("#locPick").classList.add("show");
+  }
+  $("#settingsScreen .location").addEventListener("click", openLocPick);
+  $("#closeLoc").addEventListener("click", ()=>$("#locPick").classList.remove("show"));
+
+  $("#applyLoc").addEventListener("click", async ()=>{
+    const raw = $("#coordsInput").value.trim();
+    const nums = raw.match(/-?\d+(?:\.\d+)?/g);
+    const typed = raw.length > 0 && nums && nums.length >= 2;
+    const changedCoords = typed &&
+      (Math.abs(parseFloat(nums[0]) - settings.lat) > 1e-4 ||
+       Math.abs(parseFloat(nums[1]) - settings.lng) > 1e-4);
+
+    if(changedCoords){
+      const la = parseFloat(nums[0]), ln = parseFloat(nums[1]);
+      if(la < -90 || la > 90 || ln < -180 || ln > 180){
+        toast("الإحداثيات غير صالحة"); return;
+      }
+      settings.lat = la; settings.lng = ln;
+      let name = null;
+      try{ name = await reverseWilaya(la, ln); }catch(e){}
+      if(!name) name = nearestWilaya(la, ln)[0];
+      applyWilaya(name, {manual:true});
+      settings.lat = la; settings.lng = ln; saveSettings();
+      toast("تم ضبط الموقع: " + name);
+    }else{
+      applyWilaya(sel.value, {manual:true});
+      toast("تم اختيار ولاية " + sel.value);
+    }
+    $("#locPick").classList.remove("show");
+  });
+
+  $("#autoLoc").addEventListener("click", ()=>{
+    settings.autoLocate = true; saveSettings();
+    locate(true);
+    $("#locPick").classList.remove("show");
+  });
 
   $("#volSlider").addEventListener("input", ()=>{
     updateVolUI();
