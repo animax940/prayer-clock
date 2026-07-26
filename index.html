@@ -887,7 +887,12 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
   $("#gotoSettings").addEventListener("click", ()=>{ ensureAudio(); showScreen("settingsScreen"); });
 
-  $("#volSlider").addEventListener("input", updateVolUI);
+  $("#volSlider").addEventListener("input", ()=>{
+    updateVolUI();
+    settings.volume = parseInt($("#volSlider").value,10)||0;
+    if(adhanAudio) adhanAudio.volume = Math.min(1, Math.max(0, settings.volume/100));
+    saveSettings();
+  });
   $("#soundBtn").addEventListener("click", ()=>{
     if(adhanAudio){ stopAdhan(); } /* إيقاف المعاينة السابقة */
     settings.soundIndex = (settings.soundIndex+1)%SOUNDS.length;
