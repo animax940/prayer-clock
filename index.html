@@ -489,6 +489,17 @@
     <div class="hint">حرّك المؤشر داخل القرص لاختيار لون الخلفية،<br>ثم اضغط "حفظ" لتثبيته.</div>
   </div>
 
+  <!-- بوابة رمز الدخول -->
+  <div class="adminpick" id="pinGate" style="justify-content:center">
+    <h3 id="pinTitle">رمز الدخول</h3>
+    <div class="hint" id="pinHint">أدخل الرمز المكوّن من 10 أرقام.</div>
+    <input class="field" id="pinInput" type="password" inputmode="numeric"
+           dir="ltr" maxlength="10" autocomplete="off" style="text-align:center;font-size:6cqw;letter-spacing:0.5cqw">
+    <div class="status" id="pinStatus"></div>
+    <button class="act" id="pinEnter">دخول</button>
+    <button class="act dark" id="pinCancel">إلغاء</button>
+  </div>
+
   <!-- نافذة التحكم العام: تفتح بالضغط المطوّل على الساعة في الشاشة الرئيسية -->
   <div class="adminpick" id="adminPick">
     <h3>التحكم العام</h3>
@@ -524,7 +535,16 @@
     </div>
 
     <div>
-      <label>مفتاح النشر (يُحفظ في جهازك وحدك)</label>
+      <label>رمز الدخول (10 أرقام)</label>
+      <div class="row">
+        <input class="field" id="adPinShow" dir="ltr" readonly
+               style="text-align:center;letter-spacing:0.4cqw">
+        <button class="act dark" id="adNewPin" style="flex:0 0 38%;font-size:3.4cqw">توليد رمز جديد</button>
+      </div>
+    </div>
+
+    <div>
+      <label>مفتاح النشر من GitHub (يُدخل مرة واحدة ويُحفظ في جهازك)</label>
       <input class="field" id="adToken" type="password" dir="ltr" autocomplete="off"
              placeholder="github_pat_...">
     </div>
@@ -1315,6 +1335,70 @@ function openClrPick(){
   }
   $("#closeClr").addEventListener("click", ()=>$("#clrPick").classList.remove("show"));
 
+  /* ---- رمز الدخول: 10 أرقام يولّدها التطبيق، ويُحفظ مشفّراً ---- */
+  function makePin(){
+    const a = new Uint32Array(2);
+    (crypto.getRandomValues ? crypto : window.msCrypto).getRandomValues(a);
+    return String(a[0] % 100000).padStart(5, "0") +
+           String(a[1] % 100000).padStart(5, "0");
+  }
+  async function hashPin(pin){
+    if(crypto.subtle){
+      const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("pc:" + pin));
+      return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,"0")).join("");
+    }
+    let h = 5381;                       /* بديل عند غياب التشفير في المتصفح */
+    for(const ch of ("pc:" + pin)) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0;
+    return "f" + h.toString(16);
+  }
+  async function setPin(pin){
+    localStorage.setItem("adminPinHash", await hashPin(pin));
+    localStorage.setItem("adminPinShown", pin);   /* لعرضه لك داخل النافذة */
+  }
+  async function checkPin(pin){
+    const stored = localStorage.getItem("adminPinHash");
+    return !!stored && stored === await hashPin(pin);
+  }
+  function requestAdminAccess(){
+    const gate = $("#pinGate");
+    $("#pinInput").value = "";
+    $("#pinStatus").textContent = "";
+    if(localStorage.getItem("adminPinHash")){
+      $("#pinTitle").textContent = "رمز الدخول";
+      $("#pinHint").textContent = "أدخل الرمز المكوّن من 10 أرقام.";
+      $("#pinEnter").textContent = "دخول";
+      $("#pinInput").style.display = "block";
+    }else{
+      $("#pinTitle").textContent = "إنشاء رمز الدخول";
+      $("#pinHint").textContent = "لم تُنشئ رمزاً بعد. اضغط لتوليد رمز من 10 أرقام واحتفظ به.";
+      $("#pinEnter").textContent = "توليد الرمز";
+      $("#pinInput").style.display = "none";
+    }
+    gate.classList.add("show");
+  }
+  $("#pinCancel").addEventListener("click", ()=>$("#pinGate").classList.remove("show"));
+  $("#pinEnter").addEventListener("click", async ()=>{
+    if(!localStorage.getItem("adminPinHash")){
+      const pin = makePin();
+      await setPin(pin);
+      $("#pinStatus").style.color = "var(--green)";
+      $("#pinStatus").textContent = "رمزك الجديد: " + pin + " — احفظه";
+      $("#pinTitle").textContent = "تم الإنشاء";
+      $("#pinHint").textContent = "سيُطلب منك هذا الرمز في كل مرة.";
+      $("#pinEnter").textContent = "متابعة";
+      setTimeout(()=>{ $("#pinGate").classList.remove("show"); openAdmin(); }, 2500);
+      return;
+    }
+    if(await checkPin($("#pinInput").value.trim())){
+      $("#pinGate").classList.remove("show");
+      openAdmin();
+    }else{
+      $("#pinStatus").style.color = "#ff9a9a";
+      $("#pinStatus").textContent = "رمز غير صحيح";
+      $("#pinInput").value = "";
+    }
+  });
+
   /* ---- نافذة التحكم العام (للمشرف) ---- */
   function currentHijriNoOffset(){
     const save = settings.hijriOffsetDays;
@@ -1370,6 +1454,7 @@ function openClrPick(){
     $("#adColIqamah").value = cssVarOr("--c-iqamah", "#7dffa0");
     $("#adColName").value   = cssVarOr("--c-pname",  "#f6dd95");
     $("#adToken").value = localStorage.getItem("adminToken") || "";
+    $("#adPinShow").value = localStorage.getItem("adminPinShown") || "—";
     $("#adStatus").textContent = "";
     $("#adminPick").classList.add("show");
   }
@@ -1406,6 +1491,13 @@ function openClrPick(){
     if(!r.ok) throw new Error("http-" + r.status);
   }
 
+  $("#adNewPin").addEventListener("click", async ()=>{
+    const pin = makePin();
+    await setPin(pin);
+    $("#adPinShow").value = pin;
+    adStatus("رمزك الجديد: " + pin + " — احفظه، الرمز القديم لم يعد يعمل", true);
+  });
+
   $("#adPreview").addEventListener("click", ()=>{
     applyRemoteConfig(buildConfigFromPanel());
     refreshTimes(); updateTicker(); tick();
@@ -1434,7 +1526,7 @@ function openClrPick(){
   {
     const clock = $("#mainScreen .js-clock");
     let timer = null;
-    const start = ()=>{ timer = setTimeout(openAdmin, 2000); };
+    const start = ()=>{ timer = setTimeout(requestAdminAccess, 2000); };
     const cancel = ()=>{ clearTimeout(timer); };
     clock.addEventListener("pointerdown", start);
     clock.addEventListener("pointerup", cancel);
