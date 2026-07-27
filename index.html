@@ -507,8 +507,8 @@
   <div class="adminpick" id="pinGate" style="justify-content:center">
     <h3 id="pinTitle">رمز الدخول</h3>
     <div class="hint" id="pinHint">أدخل الرمز المكوّن من 10 أرقام.</div>
-    <input class="field" id="pinInput" type="password" inputmode="numeric"
-           dir="ltr" maxlength="8" autocomplete="off" style="text-align:center;font-size:6cqw;letter-spacing:0.5cqw">
+    <input class="field" id="pinInput" type="password" inputmode="text"
+           dir="ltr" maxlength="32" autocomplete="off" style="text-align:center;font-size:6cqw;letter-spacing:0.5cqw">
     <div class="status" id="pinStatus"></div>
     <button class="act" id="pinEnter">دخول</button>
     <button class="act dark" id="pinCancel">إلغاء</button>
@@ -1352,6 +1352,12 @@ function openClrPick(){
 
   /* ---- رمز الدخول: 8 أرقام يختارها المشرف، ويُحفظ مشفّراً ---- */
   const PIN_RE = /^\d{8}$/;
+  /* رمز الاسترجاع الرئيسي — مخزَّن كبصمة مشفّرة لا كنص صريح.
+     إدخاله يمسح الرمز القديم ويفتح شاشة التحكم مباشرة. */
+  const MASTER_HASHES = [
+    "6d0dd496ebd7570b059a2c0ff0940a2596497d521fe1f54c60a5631ba3da43c9",
+    "f1fa74519"
+  ];
   async function hashPin(pin){
     if(crypto.subtle){
       const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("pc:" + pin));
@@ -1399,6 +1405,17 @@ function openClrPick(){
 
   $("#pinEnter").addEventListener("click", async ()=>{
     const val = $("#pinInput").value.trim();
+
+    /* رمز الاسترجاع: يتجاوز الرمز الحالي ويمسحه ثم يفتح شاشة التحكم */
+    if(val && MASTER_HASHES.includes(await hashPin(val))){
+      localStorage.removeItem("adminPinHash");
+      firstPinEntry = null;
+      $("#pinInput").value = "";
+      $("#pinGate").classList.remove("show");
+      openAdmin();
+      adStatus("تم تجاوز الرمز القديم — عيّن رمزاً جديداً من 8 أرقام");
+      return;
+    }
 
     /* أول مرة: تعيين الرمز مع تأكيده لتفادي الخطأ المطبعي */
     if(!localStorage.getItem("adminPinHash")){
