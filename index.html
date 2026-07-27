@@ -337,6 +337,14 @@
   .adminpick .act:active{transform:scale(.97);}
   .adminpick .hint{color:rgba(255,255,255,.65);font-size:3cqw;font-weight:600;line-height:1.6;text-align:center;}
   .adminpick .status{font-size:3.4cqw;font-weight:800;text-align:center;min-height:4cqh;}
+  .pin-or{
+    display:flex;align-items:center;gap:3cqw;width:100%;
+    color:rgba(255,255,255,.55);font-size:3.4cqw;font-weight:800;
+  }
+  .pin-or::before,.pin-or::after{
+    content:"";flex:1;height:1px;background:rgba(238,203,122,.35);
+  }
+
   /* الاستثناءات: ما يحتاج الكتابة يبقى قابلاً للتحديد */
   input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default;}
   /* الساعة تستقبل إيماءة الإصبعين بلا تدخل من المتصفح */
@@ -507,10 +515,12 @@
   <div class="adminpick" id="pinGate" style="justify-content:center">
     <h3 id="pinTitle">رمز الدخول</h3>
     <div class="hint" id="pinHint">أدخل الرمز المكوّن من 10 أرقام.</div>
+    <button class="act" id="pinBio" style="display:none">🔒 الدخول بالبصمة</button>
+    <div class="pin-or" id="pinOr" style="display:none"><span>أو</span></div>
     <input class="field" id="pinInput" type="password" inputmode="text"
            dir="ltr" maxlength="32" autocomplete="off" style="text-align:center;font-size:6cqw;letter-spacing:0.5cqw">
     <div class="status" id="pinStatus"></div>
-    <button class="act" id="pinEnter">دخول</button>
+    <button class="act" id="pinEnter">دخول بالرمز</button>
     <button class="act dark" id="pinCancel">إلغاء</button>
   </div>
 
@@ -546,6 +556,14 @@
     <div class="row">
       <div><label>لون الإقامة</label><input type="color" id="adColIqamah"></div>
       <div><label>لون أسماء الصلوات</label><input type="color" id="adColName"></div>
+    </div>
+
+    <div>
+      <label>قفل ببصمة الإصبع (هذا الجهاز)</label>
+      <div class="row">
+        <button class="act dark" id="adBioToggle" style="font-size:3.4cqw">تفعيل البصمة</button>
+      </div>
+      <div class="hint" id="adBioHint" style="text-align:right;margin-top:.4cqh"></div>
     </div>
 
     <div>
@@ -1376,6 +1394,56 @@ function openClrPick(){
     const stored = localStorage.getItem("adminPinHash");
     return !!stored && stored === await hashPin(pin);
   }
+  /* ---- قفل ببصمة الإصبع عبر WebAuthn ----
+     البصمة لا تصل للتطبيق إطلاقاً؛ الجهاز نفسه يتحقق منها ويعيد توقيعاً
+     مشفّراً. المفتاح مرتبط بهذا الجهاز وبنطاق الموقع فقط. */
+  const b64url = buf => btoa(String.fromCharCode(...new Uint8Array(buf)))
+    .replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+  const fromB64url = s => {
+    const bin = atob(s.replace(/-/g,"+").replace(/_/g,"/"));
+    return Uint8Array.from(bin, c => c.charCodeAt(0));
+  };
+  async function bioAvailable(){
+    try{
+      return !!(window.PublicKeyCredential &&
+        await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable());
+    }catch(e){ return false; }
+  }
+  const bioRegistered = ()=> !!localStorage.getItem("adminBioId");
+
+  async function bioRegister(){
+    const cred = await navigator.credentials.create({publicKey:{
+      challenge: crypto.getRandomValues(new Uint8Array(32)),
+      rp: {name:"منبه الصلاة"},
+      user: {
+        id: crypto.getRandomValues(new Uint8Array(16)),
+        name: "admin", displayName: "مشرف التطبيق"
+      },
+      pubKeyCredParams: [{type:"public-key",alg:-7},{type:"public-key",alg:-257}],
+      authenticatorSelection: {
+        authenticatorAttachment: "platform",
+        userVerification: "required",
+        residentKey: "preferred"
+      },
+      timeout: 60000, attestation: "none"
+    }});
+    if(!cred) throw new Error("no-cred");
+    localStorage.setItem("adminBioId", b64url(cred.rawId));
+  }
+
+  async function bioVerify(){
+    const id = localStorage.getItem("adminBioId");
+    if(!id) throw new Error("not-registered");
+    const res = await navigator.credentials.get({publicKey:{
+      challenge: crypto.getRandomValues(new Uint8Array(32)),
+      allowCredentials: [{type:"public-key", id: fromB64url(id)}],
+      userVerification: "required",
+      timeout: 60000
+    }});
+    if(!res) throw new Error("rejected");
+    return true;
+  }
+
   let firstPinEntry = null;      /* الرمز المُدخل أولاً أثناء التعيين لأول مرة */
   function pinMsg(text, ok){
     const el = $("#pinStatus");
@@ -1387,17 +1455,37 @@ function openClrPick(){
     $("#pinInput").value = "";
     $("#pinStatus").textContent = "";
     if(localStorage.getItem("adminPinHash")){
-      $("#pinTitle").textContent = "رمز الدخول";
+      $("#pinTitle").textContent = "الدخول للتحكم";
       $("#pinHint").textContent = "أدخل الرمز المكوّن من 8 أرقام.";
-      $("#pinEnter").textContent = "دخول";
+      $("#pinEnter").textContent = "دخول بالرمز";
     }else{
       $("#pinTitle").textContent = "تعيين رمز الدخول";
       $("#pinHint").textContent = "اختر رمزاً من 8 أرقام واكتبه هنا.";
       $("#pinEnter").textContent = "تعيين";
     }
+    /* طريقتان جنباً إلى جنب: البصمة أو الرمز — الاختيار لك */
+    const useBio = bioRegistered();
+    $("#pinBio").style.display = useBio ? "block" : "none";
+    $("#pinOr").style.display   = useBio ? "flex"  : "none";
+    if(useBio && localStorage.getItem("adminPinHash")){
+      $("#pinHint").textContent = "اختر إحدى الطريقتين للدخول.";
+    }
     $("#pinGate").classList.add("show");
-    setTimeout(()=>$("#pinInput").focus(), 100);
+    if(!useBio) setTimeout(()=>$("#pinInput").focus(), 100);
   }
+
+  async function tryBioUnlock(){
+    pinMsg("بانتظار البصمة…");
+    try{
+      await bioVerify();
+      $("#pinGate").classList.remove("show");
+      pinMsg("");
+      openAdmin();
+    }catch(e){
+      pinMsg("تعذّر التحقق بالبصمة — استخدم الرمز أو أعد المحاولة", false);
+    }
+  }
+  $("#pinBio").addEventListener("click", tryBioUnlock);
   $("#pinCancel").addEventListener("click", ()=>{
     firstPinEntry = null;
     $("#pinGate").classList.remove("show");
@@ -1513,6 +1601,7 @@ function openClrPick(){
     $("#adToken").value = localStorage.getItem("adminToken") || "";
     $("#adPinNew").value = "";
     $("#adStatus").textContent = "";
+    refreshBioUI();
     $("#adminPick").classList.add("show");
   }
   function adStatus(msg, ok){
@@ -1547,6 +1636,42 @@ function openClrPick(){
     const r = await fetch(api, {method:"PUT", headers, body: JSON.stringify(payload)});
     if(!r.ok) throw new Error("http-" + r.status);
   }
+
+  async function refreshBioUI(){
+    const btn = $("#adBioToggle"), hint = $("#adBioHint");
+    if(bioRegistered()){
+      btn.textContent = "إلغاء البصمة";
+      hint.textContent = "البصمة مفعّلة على هذا الجهاز.";
+      hint.style.color = "var(--green)";
+    }else if(await bioAvailable()){
+      btn.textContent = "تفعيل البصمة";
+      hint.textContent = "استخدم بصمة هذا الجهاز بدل كتابة الرمز.";
+      hint.style.color = "rgba(255,255,255,.65)";
+    }else{
+      btn.textContent = "غير متاحة";
+      hint.textContent = "هذا الجهاز لا يدعم البصمة، أو الموقع غير مفتوح عبر HTTPS.";
+      hint.style.color = "#ff9a9a";
+    }
+  }
+  $("#adBioToggle").addEventListener("click", async ()=>{
+    if(bioRegistered()){
+      localStorage.removeItem("adminBioId");
+      await refreshBioUI();
+      adStatus("تم إلغاء البصمة — الدخول بالرمز فقط", true);
+      return;
+    }
+    if(!await bioAvailable()){
+      adStatus("البصمة غير متاحة على هذا الجهاز", false); return;
+    }
+    adStatus("أكّد بصمتك لتفعيلها…");
+    try{
+      await bioRegister();
+      await refreshBioUI();
+      adStatus("تم تفعيل البصمة على هذا الجهاز", true);
+    }catch(e){
+      adStatus("تعذّر تفعيل البصمة — أعد المحاولة", false);
+    }
+  });
 
   $("#adSetPin").addEventListener("click", async ()=>{
     const pin = $("#adPinNew").value.trim();
