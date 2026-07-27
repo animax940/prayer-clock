@@ -527,7 +527,14 @@
   <!-- نافذة التحكم العام: تفتح بالضغط المطوّل على الساعة في الشاشة الرئيسية -->
   <div class="adminpick" id="adminPick">
     <h3>التحكم العام</h3>
-    <div class="hint">ما تنشره هنا يصل إلى كل من ثبّت التطبيق على جهازه.</div>
+
+    <div>
+      <label>🔒 قفل ببصمة الإصبع (هذا الجهاز)</label>
+      <button class="act dark" id="adBioToggle" style="width:100%">تفعيل البصمة</button>
+      <div class="hint" id="adBioHint" style="text-align:center;margin-top:.5cqh"></div>
+    </div>
+
+    <div class="hint">ما تنشره أدناه يصل إلى كل من ثبّت التطبيق على جهازه.</div>
 
     <div class="row">
       <div>
@@ -556,14 +563,6 @@
     <div class="row">
       <div><label>لون الإقامة</label><input type="color" id="adColIqamah"></div>
       <div><label>لون أسماء الصلوات</label><input type="color" id="adColName"></div>
-    </div>
-
-    <div>
-      <label>قفل ببصمة الإصبع (هذا الجهاز)</label>
-      <div class="row">
-        <button class="act dark" id="adBioToggle" style="font-size:3.4cqw">تفعيل البصمة</button>
-      </div>
-      <div class="hint" id="adBioHint" style="text-align:right;margin-top:.4cqh"></div>
     </div>
 
     <div>
@@ -697,6 +696,19 @@ function saveSettings(){
 const CONFIG_URL = "config.json";
 const REPO = "animax940/prayer-clock";
 
+/* قائمة الأجهزة المصرّح لها بالبصمة — تُنشر من جهاز المشرف فقط */
+let remoteAdminDevices = [];
+
+async function sha256hex(str){
+  if(crypto.subtle){
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+    return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,"0")).join("");
+  }
+  let h = 5381;
+  for(const ch of str) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0;
+  return "f" + h.toString(16);
+}
+
 function applyRemoteConfig(cfg){
   if(!cfg || typeof cfg !== "object") return false;
   const seen = localStorage.getItem("configStamp");
@@ -716,6 +728,7 @@ function applyRemoteConfig(cfg){
     if(typeof val === "string" && /^#[0-9a-fA-F]{3,8}$/.test(val))
       document.documentElement.style.setProperty(name, val);
   };
+  if(Array.isArray(cfg.adminDevices)) remoteAdminDevices = cfg.adminDevices;
   setVar("--c-ticker", c.ticker);
   setVar("--c-adhan",  c.adhan);
   setVar("--c-iqamah", c.iqamah);
@@ -1376,15 +1389,7 @@ function openClrPick(){
     "6d0dd496ebd7570b059a2c0ff0940a2596497d521fe1f54c60a5631ba3da43c9",
     "f1fa74519"
   ];
-  async function hashPin(pin){
-    if(crypto.subtle){
-      const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("pc:" + pin));
-      return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,"0")).join("");
-    }
-    let h = 5381;                       /* بديل عند غياب التشفير في المتصفح */
-    for(const ch of ("pc:" + pin)) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0;
-    return "f" + h.toString(16);
-  }
+  const hashPin = pin => sha256hex("pc:" + pin);
   async function setPin(pin){
     /* يُحفظ مشفّراً فقط — لا يُخزَّن الرمز نصاً صريحاً في أي مكان */
     localStorage.setItem("adminPinHash", await hashPin(pin));
@@ -1454,15 +1459,12 @@ function openClrPick(){
     firstPinEntry = null;
     $("#pinInput").value = "";
     $("#pinStatus").textContent = "";
-    if(localStorage.getItem("adminPinHash")){
-      $("#pinTitle").textContent = "الدخول للتحكم";
-      $("#pinHint").textContent = "أدخل الرمز المكوّن من 8 أرقام.";
-      $("#pinEnter").textContent = "دخول بالرمز";
-    }else{
-      $("#pinTitle").textContent = "تعيين رمز الدخول";
-      $("#pinHint").textContent = "اختر رمزاً من 8 أرقام واكتبه هنا.";
-      $("#pinEnter").textContent = "تعيين";
-    }
+    $("#pinTitle").textContent = "الدخول للتحكم";
+    $("#pinEnter").textContent = "دخول";
+    /* لا يُسمح بتعيين رمز من الصفر: الجهاز الجديد يحتاج رمز الاسترجاع */
+    $("#pinHint").textContent = localStorage.getItem("adminPinHash")
+      ? "أدخل رمز الدخول."
+      : "هذا الجهاز غير مصرّح له. أدخل رمز الاسترجاع للمتابعة.";
     /* طريقتان جنباً إلى جنب: البصمة أو الرمز — الاختيار لك */
     const useBio = bioRegistered();
     $("#pinBio").style.display = useBio ? "block" : "none";
@@ -1474,10 +1476,25 @@ function openClrPick(){
     if(!useBio) setTimeout(()=>$("#pinInput").focus(), 100);
   }
 
+  /* بصمة الجهاز لا تكفي: يجب أن يكون الجهاز ضمن القائمة المنشورة من المشرف.
+     وإضافة جهاز للقائمة تتطلب النشر، والنشر يتطلب مفتاح GitHub. */
+  async function bioDeviceHash(){
+    const id = localStorage.getItem("adminBioId");
+    return id ? await sha256hex("dev:" + id) : null;
+  }
+  async function bioAuthorized(){
+    if(!remoteAdminDevices.length) return true;   /* لم تُضبط القائمة بعد */
+    const h = await bioDeviceHash();
+    return !!h && remoteAdminDevices.includes(h);
+  }
   async function tryBioUnlock(){
     pinMsg("بانتظار البصمة…");
     try{
       await bioVerify();
+      if(!await bioAuthorized()){
+        pinMsg("هذا الجهاز غير معتمد — استخدم الرمز", false);
+        return;
+      }
       $("#pinGate").classList.remove("show");
       pinMsg("");
       openAdmin();
@@ -1505,33 +1522,13 @@ function openClrPick(){
       return;
     }
 
-    /* أول مرة: تعيين الرمز مع تأكيده لتفادي الخطأ المطبعي */
+    /* جهاز بلا رمز محفوظ: رمز الاسترجاع وحده يفتحه (عولج أعلاه) */
     if(!localStorage.getItem("adminPinHash")){
-      if(!PIN_RE.test(val)){ pinMsg("الرمز يجب أن يكون 8 أرقام", false); return; }
-      if(firstPinEntry === null){
-        firstPinEntry = val;
-        $("#pinInput").value = "";
-        $("#pinHint").textContent = "أعد إدخال الرمز نفسه للتأكيد.";
-        $("#pinEnter").textContent = "تأكيد";
-        pinMsg("");
-        return;
-      }
-      if(val !== firstPinEntry){
-        firstPinEntry = null;
-        $("#pinInput").value = "";
-        $("#pinHint").textContent = "اختر رمزاً من 8 أرقام واكتبه هنا.";
-        $("#pinEnter").textContent = "تعيين";
-        pinMsg("الرمزان غير متطابقين — أعد المحاولة", false);
-        return;
-      }
-      await setPin(val);
-      firstPinEntry = null;
-      $("#pinGate").classList.remove("show");
-      openAdmin();
+      pinMsg("هذا الجهاز غير مصرّح له", false);
+      $("#pinInput").value = "";
       return;
     }
 
-    /* المرات التالية: تحقّق */
     if(await checkPin(val)){
       $("#pinGate").classList.remove("show");
       openAdmin();
@@ -1568,11 +1565,16 @@ function openClrPick(){
     }
     return settings.hijriOffsetDays;
   }
-  function buildConfigFromPanel(){
+  async function buildConfigFromPanel(){
     const day   = parseInt($("#adDay").value, 10);
     const month = parseInt($("#adMonth").value, 10);
+    /* اعتماد هذا الجهاز تلقائياً عند النشر إن كانت بصمته مفعّلة */
+    const devices = remoteAdminDevices.slice();
+    const h = await bioDeviceHash();
+    if(h && !devices.includes(h)) devices.push(h);
     return {
       updatedAt: new Date().toISOString(),
+      adminDevices: devices,
       hijriOffsetDays: offsetForHijri(day, month),
       tickerMain: $("#adTickerMain").value.trim() || TICKER_MAIN_TEXT,
       tickerSettings: $("#adTickerSettings").value.trim() || TICKER_SETTINGS_TEXT,
@@ -1681,14 +1683,14 @@ function openClrPick(){
     adStatus("تم تغيير رمز الدخول — الرمز القديم لم يعد يعمل", true);
   });
 
-  $("#adPreview").addEventListener("click", ()=>{
-    applyRemoteConfig(buildConfigFromPanel());
+  $("#adPreview").addEventListener("click", async ()=>{
+    applyRemoteConfig(await buildConfigFromPanel());
     refreshTimes(); updateTicker(); tick();
     adStatus("طُبّقت على جهازك فقط — لم تُنشر بعد");
   });
   $("#adClose").addEventListener("click", ()=>$("#adminPick").classList.remove("show"));
   $("#adPublish").addEventListener("click", async ()=>{
-    const cfg = buildConfigFromPanel();
+    const cfg = await buildConfigFromPanel();
     adStatus("جارٍ النشر…");
     try{
       await publishConfig(cfg);
