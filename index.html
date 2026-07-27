@@ -337,17 +337,10 @@
   .adminpick .act:active{transform:scale(.97);}
   .adminpick .hint{color:rgba(255,255,255,.65);font-size:3cqw;font-weight:600;line-height:1.6;text-align:center;}
   .adminpick .status{font-size:3.4cqw;font-weight:800;text-align:center;min-height:4cqh;}
-  .pin-big{
-    display:none;direction:ltr;text-align:center;
-    color:var(--gold-strong);font-size:9cqw;font-weight:900;letter-spacing:1cqw;
-    background:#000;border:0.5cqw solid var(--gold);border-radius:3cqw;
-    padding:1.6cqh 2cqw;margin:.6cqh 0;user-select:all;
-    font-variant-numeric:tabular-nums;
-  }
-  .pin-big.show{display:block;}
-  /* الاستثناءات: ما يحتاج الكتابة أو النسخ يبقى قابلاً للتحديد */
+  /* الاستثناءات: ما يحتاج الكتابة يبقى قابلاً للتحديد */
   input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default;}
-  .pin-big{-webkit-user-select:all;user-select:all;-webkit-touch-callout:default;}
+  /* الساعة تستقبل إيماءة الإصبعين بلا تدخل من المتصفح */
+  .js-clock{touch-action:none;}
 
   /* شاشة الوداع */
   .farewell{
@@ -515,10 +508,8 @@
     <h3 id="pinTitle">رمز الدخول</h3>
     <div class="hint" id="pinHint">أدخل الرمز المكوّن من 10 أرقام.</div>
     <input class="field" id="pinInput" type="password" inputmode="numeric"
-           dir="ltr" maxlength="10" autocomplete="off" style="text-align:center;font-size:6cqw;letter-spacing:0.5cqw">
-    <div class="pin-big" id="pinBig"></div>
+           dir="ltr" maxlength="8" autocomplete="off" style="text-align:center;font-size:6cqw;letter-spacing:0.5cqw">
     <div class="status" id="pinStatus"></div>
-    <button class="act" id="pinCopy" style="display:none">نسخ الرمز</button>
     <button class="act" id="pinEnter">دخول</button>
     <button class="act dark" id="pinCancel">إلغاء</button>
   </div>
@@ -558,11 +549,12 @@
     </div>
 
     <div>
-      <label>رمز الدخول (10 أرقام)</label>
+      <label>تغيير رمز الدخول (8 أرقام)</label>
       <div class="row">
-        <input class="field" id="adPinShow" dir="ltr" readonly
+        <input class="field" id="adPinNew" type="text" inputmode="numeric" dir="ltr"
+               maxlength="8" autocomplete="off" placeholder="********"
                style="text-align:center;letter-spacing:0.4cqw">
-        <button class="act dark" id="adNewPin" style="flex:0 0 38%;font-size:3.4cqw">توليد رمز جديد</button>
+        <button class="act dark" id="adSetPin" style="flex:0 0 38%;font-size:3.4cqw">تغيير الرمز</button>
       </div>
     </div>
 
@@ -1358,13 +1350,8 @@ function openClrPick(){
   }
   $("#closeClr").addEventListener("click", ()=>$("#clrPick").classList.remove("show"));
 
-  /* ---- رمز الدخول: 10 أرقام يولّدها التطبيق، ويُحفظ مشفّراً ---- */
-  function makePin(){
-    const a = new Uint32Array(2);
-    (crypto.getRandomValues ? crypto : window.msCrypto).getRandomValues(a);
-    return String(a[0] % 100000).padStart(5, "0") +
-           String(a[1] % 100000).padStart(5, "0");
-  }
+  /* ---- رمز الدخول: 8 أرقام يختارها المشرف، ويُحفظ مشفّراً ---- */
+  const PIN_RE = /^\d{8}$/;
   async function hashPin(pin){
     if(crypto.subtle){
       const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("pc:" + pin));
@@ -1383,81 +1370,73 @@ function openClrPick(){
     const stored = localStorage.getItem("adminPinHash");
     return !!stored && stored === await hashPin(pin);
   }
+  let firstPinEntry = null;      /* الرمز المُدخل أولاً أثناء التعيين لأول مرة */
+  function pinMsg(text, ok){
+    const el = $("#pinStatus");
+    el.textContent = text;
+    el.style.color = ok === true ? "var(--green)" : ok === false ? "#ff9a9a" : "var(--gold-strong)";
+  }
   function requestAdminAccess(){
-    const gate = $("#pinGate");
+    firstPinEntry = null;
     $("#pinInput").value = "";
     $("#pinStatus").textContent = "";
-    $("#pinBig").classList.remove("show");
-    $("#pinBig").textContent = "";
-    $("#pinCopy").style.display = "none";
-    $("#pinCancel").textContent = "إلغاء";
     if(localStorage.getItem("adminPinHash")){
       $("#pinTitle").textContent = "رمز الدخول";
-      $("#pinHint").textContent = "أدخل الرمز المكوّن من 10 أرقام.";
+      $("#pinHint").textContent = "أدخل الرمز المكوّن من 8 أرقام.";
       $("#pinEnter").textContent = "دخول";
-      $("#pinInput").style.display = "block";
     }else{
-      $("#pinTitle").textContent = "إنشاء رمز الدخول";
-      $("#pinHint").textContent = "لم تُنشئ رمزاً بعد. اضغط لتوليد رمز من 10 أرقام واحتفظ به.";
-      $("#pinEnter").textContent = "توليد الرمز";
-      $("#pinInput").style.display = "none";
+      $("#pinTitle").textContent = "تعيين رمز الدخول";
+      $("#pinHint").textContent = "اختر رمزاً من 8 أرقام واكتبه هنا.";
+      $("#pinEnter").textContent = "تعيين";
     }
-    gate.classList.add("show");
+    $("#pinGate").classList.add("show");
+    setTimeout(()=>$("#pinInput").focus(), 100);
   }
   $("#pinCancel").addEventListener("click", ()=>{
-    pendingNext = null;
+    firstPinEntry = null;
     $("#pinGate").classList.remove("show");
-  });
-  /* عرض الرمز يبقى ظاهراً حتى يغلق المستخدم بنفسه — بلا مؤقّت */
-  function showPinToSave(pin, nextLabel, onNext){
-    $("#pinInput").style.display = "none";
-    $("#pinBig").textContent = pin;
-    $("#pinBig").classList.add("show");
-    $("#pinCopy").style.display = "block";
-    $("#pinTitle").textContent = "احفظ رمزك";
-    $("#pinHint").textContent = "اكتب هذا الرمز في مكان آمن — لن يُعرض بعد إغلاق النافذة.";
-    $("#pinStatus").style.color = "var(--gold-strong)";
-    $("#pinStatus").textContent = "";
-    $("#pinEnter").textContent = nextLabel;
-    $("#pinCancel").textContent = "إغلاق";
-    $("#pinGate").dataset.next = "";
-    pendingNext = onNext;
-  }
-  let pendingNext = null;
-
-  $("#pinCopy").addEventListener("click", async ()=>{
-    const pin = $("#pinBig").textContent;
-    try{
-      await navigator.clipboard.writeText(pin);
-      $("#pinStatus").style.color = "var(--green)";
-      $("#pinStatus").textContent = "تم نسخ الرمز";
-    }catch(e){
-      $("#pinStatus").style.color = "#ff9a9a";
-      $("#pinStatus").textContent = "تعذر النسخ — اكتبه يدوياً";
-    }
   });
 
   $("#pinEnter").addEventListener("click", async ()=>{
-    if(pendingNext){
-      const fn = pendingNext; pendingNext = null;
-      $("#pinGate").classList.remove("show");
-      fn();
-      return;
-    }
+    const val = $("#pinInput").value.trim();
+
+    /* أول مرة: تعيين الرمز مع تأكيده لتفادي الخطأ المطبعي */
     if(!localStorage.getItem("adminPinHash")){
-      const pin = makePin();
-      await setPin(pin);
-      showPinToSave(pin, "متابعة", openAdmin);
+      if(!PIN_RE.test(val)){ pinMsg("الرمز يجب أن يكون 8 أرقام", false); return; }
+      if(firstPinEntry === null){
+        firstPinEntry = val;
+        $("#pinInput").value = "";
+        $("#pinHint").textContent = "أعد إدخال الرمز نفسه للتأكيد.";
+        $("#pinEnter").textContent = "تأكيد";
+        pinMsg("");
+        return;
+      }
+      if(val !== firstPinEntry){
+        firstPinEntry = null;
+        $("#pinInput").value = "";
+        $("#pinHint").textContent = "اختر رمزاً من 8 أرقام واكتبه هنا.";
+        $("#pinEnter").textContent = "تعيين";
+        pinMsg("الرمزان غير متطابقين — أعد المحاولة", false);
+        return;
+      }
+      await setPin(val);
+      firstPinEntry = null;
+      $("#pinGate").classList.remove("show");
+      openAdmin();
       return;
     }
-    if(await checkPin($("#pinInput").value.trim())){
+
+    /* المرات التالية: تحقّق */
+    if(await checkPin(val)){
       $("#pinGate").classList.remove("show");
       openAdmin();
     }else{
-      $("#pinStatus").style.color = "#ff9a9a";
-      $("#pinStatus").textContent = "رمز غير صحيح";
+      pinMsg("رمز غير صحيح", false);
       $("#pinInput").value = "";
     }
+  });
+  $("#pinInput").addEventListener("keydown", e=>{
+    if(e.key === "Enter") $("#pinEnter").click();
   });
 
   /* ---- نافذة التحكم العام (للمشرف) ---- */
@@ -1515,7 +1494,7 @@ function openClrPick(){
     $("#adColIqamah").value = cssVarOr("--c-iqamah", "#7dffa0");
     $("#adColName").value   = cssVarOr("--c-pname",  "#f6dd95");
     $("#adToken").value = localStorage.getItem("adminToken") || "";
-    $("#adPinShow").value = "••••••••••";
+    $("#adPinNew").value = "";
     $("#adStatus").textContent = "";
     $("#adminPick").classList.add("show");
   }
@@ -1552,11 +1531,12 @@ function openClrPick(){
     if(!r.ok) throw new Error("http-" + r.status);
   }
 
-  $("#adNewPin").addEventListener("click", async ()=>{
-    const pin = makePin();
+  $("#adSetPin").addEventListener("click", async ()=>{
+    const pin = $("#adPinNew").value.trim();
+    if(!PIN_RE.test(pin)){ adStatus("الرمز يجب أن يكون 8 أرقام", false); return; }
     await setPin(pin);
-    $("#adPinShow").value = pin;   /* يبقى ظاهراً حتى تغلق النافذة */
-    adStatus("احفظ الرمز الجديد الآن — الرمز القديم لم يعد يعمل", true);
+    $("#adPinNew").value = "";
+    adStatus("تم تغيير رمز الدخول — الرمز القديم لم يعد يعمل", true);
   });
 
   $("#adPreview").addEventListener("click", ()=>{
@@ -1583,16 +1563,42 @@ function openClrPick(){
     }
   });
 
-  /* الحركة السرية: ضغط مطوّل ثانيتين على الساعة في الشاشة الرئيسية */
+  /* الحركة السرية على الساعة في الشاشة الرئيسية:
+     الجوال: إصبعان مضغوطان 5 ثوانٍ — الكمبيوتر: 5 نقرات بالزر الأيسر */
   {
     const clock = $("#mainScreen .js-clock");
-    let timer = null;
-    const start = ()=>{ timer = setTimeout(requestAdminAccess, 2000); };
-    const cancel = ()=>{ clearTimeout(timer); };
-    clock.addEventListener("pointerdown", start);
-    clock.addEventListener("pointerup", cancel);
-    clock.addEventListener("pointerleave", cancel);
-    clock.addEventListener("pointercancel", cancel);
+    const touches = new Set();
+    let holdTimer = null, clicks = 0, clickTimer = null;
+
+    const cancelHold = ()=>{ clearTimeout(holdTimer); holdTimer = null; };
+
+    clock.addEventListener("pointerdown", e=>{
+      if(e.pointerType === "mouse"){
+        if(e.button !== 0) return;
+        clicks++;
+        clearTimeout(clickTimer);
+        clickTimer = setTimeout(()=>{ clicks = 0; }, 1500);
+        if(clicks >= 5){
+          clicks = 0; clearTimeout(clickTimer);
+          requestAdminAccess();
+        }
+        return;
+      }
+      touches.add(e.pointerId);
+      if(touches.size === 2 && !holdTimer){
+        holdTimer = setTimeout(()=>{ holdTimer = null; requestAdminAccess(); }, 5000);
+      }
+      if(touches.size > 2) cancelHold();
+    });
+
+    const lift = e=>{
+      if(e.pointerType === "mouse") return;
+      touches.delete(e.pointerId);
+      if(touches.size < 2) cancelHold();
+    };
+    clock.addEventListener("pointerup", lift);
+    clock.addEventListener("pointercancel", lift);
+    clock.addEventListener("pointerleave", lift);
   }
 
   /* لمس الخلفية: يوقف الأذان — وفي شاشة الضبط يفتح قرص الألوان */
