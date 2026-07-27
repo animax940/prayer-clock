@@ -42,6 +42,9 @@
     width:calc(100svh * 9 / 16);
     max-width:100vw;max-height:100vh;max-height:100svh;
     container-type:size;overflow:hidden;
+    /* منع تحديد النصوص بالسحب أو الضغط المطوّل */
+    -webkit-user-select:none;user-select:none;
+    -webkit-touch-callout:none;
     background:
       radial-gradient(130% 85% at 50% 28%, var(--bg1) 0%, var(--bg2) 48%, var(--bg3) 100%);
     box-shadow:0 0 60px rgba(0,0,0,.85);
@@ -335,6 +338,9 @@
     font-variant-numeric:tabular-nums;
   }
   .pin-big.show{display:block;}
+  /* الاستثناءات: ما يحتاج الكتابة أو النسخ يبقى قابلاً للتحديد */
+  input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default;}
+  .pin-big{-webkit-user-select:all;user-select:all;-webkit-touch-callout:default;}
 
   /* شاشة الوداع */
   .farewell{
