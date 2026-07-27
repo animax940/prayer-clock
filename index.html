@@ -231,6 +231,15 @@
   }
   .sound-btn:active{transform:scale(.96);}
 
+  /* الشاشة الرئيسية: الجدول والعدّاد يملآن ما بين اسم اليوم والشريط،
+     ومسافات الأمان الخارجية أكبر من المسافة بين السطور */
+  #mainScreen .ptable{
+    flex:1 1 auto;align-content:space-between;
+    margin-top:1.3cqh;
+  }
+  #mainScreen .countdown-box{margin-top:1.1cqh;}
+  #mainScreen .ticker{margin-top:1.3cqh;}
+
   /* ضغط عناصر شاشة الضبط لتتسع داخل الإطار */
   #settingsScreen .topbar{min-height:8.5cqh;}
   #settingsScreen .clock{font-size:8.5cqw;}
