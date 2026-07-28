@@ -1,5 +1,5 @@
 /* منبه الصلاة — Service Worker: عمل كامل بدون إنترنت بعد أول تحميل */
-const CACHE = "prayer-clock-v9";
+const CACHE = "prayer-clock-v10";
 const ASSETS = [
   "./",
   "index.html",
@@ -9,6 +9,10 @@ const ASSETS = [
   "icon-512.png",
   "icon-maskable-192.png",
   "icon-maskable-512.png",
+  "themes/night-t.jpg", "themes/lake-t.jpg", "themes/mihrab-t.jpg",
+  "themes/sunset-t.jpg", "themes/sky-t.jpg", "themes/mist-t.jpg",
+  "themes/sand-t.jpg", "themes/garden-t.jpg", "themes/violet-t.jpg",
+  "themes/twilight-t.jpg",
   "sounds/adhan1.mp3",
   "sounds/adhan2.mp3"
 ];

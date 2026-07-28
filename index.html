@@ -47,12 +47,14 @@
     -webkit-touch-callout:none;
     background:
       radial-gradient(130% 85% at 50% 28%, var(--bg1) 0%, var(--bg2) 48%, var(--bg3) 100%);
+    background-size:cover;background-position:center;
     box-shadow:0 0 60px rgba(0,0,0,.85);
   }
   @media (max-aspect-ratio: 9/16){ .app{width:100vw;height:100vh;height:100svh;} }
   /* نقوش هندسية إسلامية خفيفة */
   .app::before{
-    content:"";position:absolute;inset:0;pointer-events:none;opacity:.10;z-index:1;
+    content:"";position:absolute;inset:0;pointer-events:none;
+    opacity:var(--pattern,.10);z-index:1;
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cg fill='none' stroke='%23f6dd95' stroke-width='1.2'%3E%3Cpath d='M60 6l14 26 26 14-26 14-14 26-14-26-26-14 26-14z'/%3E%3Ccircle cx='60' cy='60' r='18'/%3E%3Cpath d='M60 42l6 12 12 6-12 6-6 12-6-12-12-6 12-6z'/%3E%3Cpath d='M0 0l18 18M120 0l-18 18M0 120l18-18M120 120l-18-18'/%3E%3C/g%3E%3C/svg%3E");
     background-size:15cqw 15cqw;
   }
@@ -153,7 +155,7 @@
 
   /* الشريط المتحرك */
   .ticker{
-    width:100%;background:#000;
+    width:100%;background:var(--ticker-bg,#000);
     border-top:0.5cqw solid var(--gold-dim);border-bottom:0.5cqw solid var(--gold-dim);
     border-radius:1.2cqw;
     overflow:hidden;white-space:nowrap;direction:ltr;
@@ -173,8 +175,8 @@
   .bottom-btn{
     margin:0;cursor:pointer;flex-shrink:0;
     display:flex;align-items:center;gap:2cqw;
-    background:linear-gradient(180deg,#241007,#0d0402);
-    color:var(--gold-strong);font-size:5cqw;font-weight:900;
+    background:linear-gradient(180deg,var(--btn-bg1,#241007),var(--btn-bg2,#0d0402));
+    color:var(--btn-fg,var(--gold-strong));font-size:5cqw;font-weight:900;
     border:0.6cqw solid var(--gold-dim);border-radius:6cqw;padding:0.7cqh 9cqw;
     box-shadow:0 0 1.8cqw rgba(238,203,122,.55), inset 0 0.2cqh 0.6cqh rgba(246,221,149,.25);
     font-family:inherit;
@@ -184,7 +186,7 @@
   /* ====== شاشة الضبط ====== */
   .set-box{
     width:100%;border:0.55cqw solid var(--gold);border-radius:4cqw;
-    padding:.7cqh 4cqw 1cqh;margin-top:1.1cqh;background:rgba(0,0,0,.25);
+    padding:.7cqh 4cqw 1cqh;margin-top:1.1cqh;background:var(--box-bg,rgba(0,0,0,.25));
     box-shadow:0 0 1.4cqw rgba(238,203,122,.3), inset 0 0 2cqw rgba(0,0,0,.4);
   }
   .set-box h3{color:var(--blue);font-size:4.6cqw;font-weight:900;text-align:center;margin-bottom:.5cqh;}
@@ -192,7 +194,8 @@
   .hijri-line{display:flex;align-items:center;justify-content:center;gap:2.5cqw;color:var(--white);font-size:4.6cqw;font-weight:900;}
   .num-input{
     width:14cqw;text-align:center;direction:ltr;
-    background:#000;color:var(--white);font-size:4.8cqw;font-weight:900;
+    background:var(--input-bg,#000);color:var(--input-fg,var(--white));
+    font-size:4.8cqw;font-weight:900;
     border:0.4cqw solid rgba(238,203,122,.6);border-radius:1.6cqw;padding:.2cqh 0;
     font-variant-numeric:tabular-nums;font-family:inherit;
   }
@@ -285,25 +288,34 @@
   .locpick .act:active, .clrpick .act:active{transform:scale(.97);}
   .locpick .hint, .clrpick .hint{color:rgba(255,255,255,.7);font-size:3.2cqw;font-weight:600;text-align:center;line-height:1.5;}
 
-  /* نافذة قرص الألوان */
-  .clrpick{
+  /* نافذة اختيار الخلفية */
+  .themepick{
     position:absolute;inset:0;z-index:62;display:none;
-    flex-direction:column;align-items:center;justify-content:center;gap:2.2cqh;
-    background:rgba(12,3,4,.96);padding:4cqh 8cqw;
+    flex-direction:column;gap:1.4cqh;
+    background:rgba(10,10,14,.96);padding:3cqh 6cqw;
   }
-  .clrpick.show{display:flex;}
-  .clrpick .act{width:70%;}
-  .wheel-wrap{position:relative;width:66cqw;height:66cqw;touch-action:none;}
-  .wheel-wrap canvas{
-    width:100%;height:100%;border-radius:50%;display:block;
-    border:0.55cqw solid var(--gold);
-    box-shadow:0 0 2.4cqw rgba(238,203,122,.4);
+  .themepick.show{display:flex;}
+  .themepick h3{color:#f6dd95;font-size:5cqw;font-weight:900;text-align:center;}
+  .theme-grid{
+    flex:1;min-height:0;overflow-y:auto;
+    display:grid;grid-template-columns:repeat(3,1fr);gap:2.5cqw;
+    padding:.5cqh 0;
   }
-  .clr-knob{
-    position:absolute;width:9cqw;height:9cqw;border-radius:50%;
-    border:0.8cqw solid #fff;box-shadow:0 0 1.4cqw rgba(0,0,0,.85);
-    transform:translate(-50%,-50%);pointer-events:none;
+  .theme-cell{
+    position:relative;cursor:pointer;border-radius:2.4cqw;overflow:hidden;
+    aspect-ratio:9/16;border:0.55cqw solid rgba(255,255,255,.25);
+    background-size:cover;background-position:center;
   }
+  .theme-cell.sel{border-color:#f6dd95;box-shadow:0 0 2cqw rgba(246,221,149,.8);}
+  .theme-cell span{
+    position:absolute;inset-inline:0;bottom:0;padding:.4cqh 0;
+    background:rgba(0,0,0,.55);color:#fff;
+    font-size:2.9cqw;font-weight:800;text-align:center;
+  }
+  .theme-cell.classic{
+    background:radial-gradient(130% 85% at 50% 28%,#d01e28,#8e1019 48%,#3a070c);
+  }
+  .themepick .act{width:100%;}
 
   /* نافذة التحكم العام (للمشرف فقط) */
   .adminpick{
@@ -376,15 +388,15 @@
   <svg class="mihrab" viewBox="0 0 90 160" preserveAspectRatio="none" aria-hidden="true">
     <defs>
       <linearGradient id="goldg" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0" stop-color="#f8e6ac"/><stop offset="0.35" stop-color="#c9982c"/>
-        <stop offset="0.55" stop-color="#f6dd95"/><stop offset="0.8" stop-color="#a87e22"/>
-        <stop offset="1" stop-color="#eecb7a"/>
+        <stop offset="0" stop-color="var(--gold-strong)"/><stop offset="0.35" stop-color="var(--gold-dim)"/>
+        <stop offset="0.55" stop-color="var(--gold-strong)"/><stop offset="0.8" stop-color="var(--gold-dim)"/>
+        <stop offset="1" stop-color="var(--gold)"/>
       </linearGradient>
     </defs>
     <path d="M5,150 L5,36 C5,28 11,25 21,21.2 C35,16 43,10.5 45,4 C47,10.5 55,16 69,21.2 C79,25 85,28 85,36 L85,150 C85,155 83,157 78,157 L12,157 C7,157 5,155 5,150 Z"
       fill="none" stroke="url(#goldg)" stroke-width="4.5" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
     <path d="M8.2,149 L8.2,37.5 C8.2,30.5 13.5,27.8 23,24.2 C36,19.3 43.6,13.6 45,8.4 C46.4,13.6 54,19.3 67,24.2 C76.5,27.8 81.8,30.5 81.8,37.5 L81.8,149 C81.8,152.6 80.3,154 76.8,154 L13.2,154 C9.7,154 8.2,152.6 8.2,149 Z"
-      fill="none" stroke="#eecb7a" stroke-width="1.2" vector-effect="non-scaling-stroke" opacity="0.7"/>
+      fill="none" stroke="var(--gold)" stroke-width="1.2" vector-effect="non-scaling-stroke" opacity="0.7"/>
   </svg>
 
   <!-- ============ الشاشة الرئيسية ============ -->
@@ -501,14 +513,11 @@
     <button class="act dark" id="closeLoc">إغلاق</button>
   </div>
 
-  <!-- نافذة قرص الألوان -->
-  <div class="clrpick" id="clrPick">
-    <button class="act dark" id="closeClr">إغلاق</button>
-    <div class="wheel-wrap" id="wheelWrap">
-      <canvas id="clrWheel"></canvas>
-      <div class="clr-knob" id="clrKnob"></div>
-    </div>
-    <div class="hint">حرّك المؤشر داخل القرص لاختيار لون الخلفية،<br>ثم اضغط "حفظ" لتثبيته.</div>
+  <!-- نافذة اختيار الخلفية -->
+  <div class="themepick" id="themePick">
+    <h3>اختيار الخلفية</h3>
+    <div class="theme-grid" id="themeGrid"></div>
+    <button class="act dark" id="closeTheme">إغلاق</button>
   </div>
 
   <!-- بوابة رمز الدخول -->
@@ -556,14 +565,6 @@
       <textarea class="field" id="adTickerSettings"></textarea>
     </div>
 
-    <div class="row">
-      <div><label>لون الشريط</label><input type="color" id="adColTicker"></div>
-      <div><label>لون الأذان</label><input type="color" id="adColAdhan"></div>
-    </div>
-    <div class="row">
-      <div><label>لون الإقامة</label><input type="color" id="adColIqamah"></div>
-      <div><label>لون أسماء الصلوات</label><input type="color" id="adColName"></div>
-    </div>
 
     <div>
       <label>تغيير رمز الدخول (8 أرقام)</label>
@@ -660,6 +661,64 @@ const PRAYERS = [
   {key:"maghrib",name:"المغرب", hasIqamah:true},
   {key:"isha",   name:"العشاء", hasIqamah:true}
 ];
+/* ---------- الخلفيات وألوان نصوصها ---------- */
+const THEME_VARS = ["--gold","--gold-strong","--gold-dim","--white","--blue",
+  "--green","--ticker-bg","--c-ticker","--btn-bg1","--btn-bg2","--btn-fg",
+  "--box-bg","--input-bg","--input-fg","--pattern","--bg1","--bg2","--bg3",
+  "--c-ticker","--c-adhan","--c-iqamah","--c-pname"];
+
+/* قالب فاتح: نص داكن على خلفية فاتحة */
+function lightTheme(ink, frame, adhan, iqamah, bar){
+  return {
+    "--gold":frame, "--gold-strong":ink, "--gold-dim":frame,
+    "--white":ink, "--blue":adhan, "--green":iqamah,
+    "--ticker-bg":bar, "--c-ticker":"#ffffff",
+    "--btn-bg1":"rgba(255,255,255,.72)", "--btn-bg2":"rgba(255,255,255,.45)",
+    "--btn-fg":ink, "--box-bg":"rgba(255,255,255,.55)",
+    "--input-bg":"rgba(255,255,255,.9)", "--input-fg":ink,
+    "--pattern":"0"
+  };
+}
+/* قالب داكن: نص فاتح على خلفية داكنة */
+function darkTheme(gold, adhan, iqamah, bar, btn1, btn2, box){
+  return {
+    "--gold":gold, "--gold-strong":gold, "--gold-dim":gold,
+    "--white":"#ffffff", "--blue":adhan, "--green":iqamah,
+    "--ticker-bg":bar, "--c-ticker":"#ffffff",
+    "--btn-bg1":btn1, "--btn-bg2":btn2, "--btn-fg":gold,
+    "--box-bg":box, "--input-bg":"rgba(0,0,0,.55)", "--input-fg":"#ffffff",
+    "--pattern":"0"
+  };
+}
+
+const THEMES = [
+  {id:"classic", name:"عنابي", img:false, vars:{}},
+  {id:"night", name:"ليل", img:true,
+   vars:darkTheme("#e2cb8c","#8fd6ff","#7dffa0","rgba(6,14,34,.82)",
+                  "#16264a","#0a1229","rgba(10,22,48,.45)")},
+  {id:"lake", name:"بحيرة", img:true,
+   vars:darkTheme("#dcc48a","#9adcff","#86f5b4","rgba(8,16,40,.82)",
+                  "#182a52","#0b1430","rgba(12,24,54,.45)")},
+  {id:"mihrab", name:"محراب", img:true,
+   vars:darkTheme("#eccf8b","#8fe3ff","#7dffc8","rgba(4,26,30,.82)",
+                  "#0d3238","#061c20","rgba(8,38,42,.45)")},
+  {id:"sunset", name:"غروب", img:true,
+   vars:darkTheme("#f3d9a5","#ffd9a8","#b9f0c0","rgba(46,26,10,.8)",
+                  "#5a3316","#331c0b","rgba(60,34,14,.42)")},
+  {id:"sky", name:"سماء", img:true,
+   vars:lightTheme("#14415e","#4a89a8","#12617f","#0d7a5a","rgba(18,66,92,.9)")},
+  {id:"mist", name:"صفاء", img:true,
+   vars:lightTheme("#14403c","#6fa9a1","#12606d","#0d7550","rgba(18,74,70,.9)")},
+  {id:"sand", name:"رمال", img:true,
+   vars:lightTheme("#5b3d1c","#b98a4e","#6d4c1f","#2f6b4f","rgba(84,56,26,.88)")},
+  {id:"garden", name:"ربيع", img:true,
+   vars:lightTheme("#24422a","#7ba363","#1f5a4a","#2f7d33","rgba(38,78,46,.9)")},
+  {id:"violet", name:"بنفسج", img:true,
+   vars:lightTheme("#3a2a6b","#9585d0","#35357f","#2f6f5a","rgba(60,46,110,.9)")},
+  {id:"twilight", name:"شفق", img:true,
+   vars:lightTheme("#4a3560","#b79ac0","#45407f","#2f6f6f","rgba(74,53,96,.9)")}
+];
+
 const SOUNDS = [
   {name:"الصوت الاول",  file:"sounds/adhan1.mp3"},
   {name:"الصوت الثاني", file:"sounds/adhan2.mp3"}
@@ -675,7 +734,7 @@ const DEFAULTS = {
   bellOn:true,
   lat:23.588, lng:58.408, wilaya:"مسقط",
   autoLocate:true,  /* يصبح false عند اختيار الولاية يدوياً */
-  bgHue:356, bgSat:79   /* لون الخلفية */
+  theme:"classic"   /* الخلفية المختارة */
 };
 let settings = loadSettings();
 function loadSettings(){
@@ -698,6 +757,7 @@ const REPO = "animax940/prayer-clock";
 
 /* قائمة الأجهزة المصرّح لها بالبصمة — تُنشر من جهاز المشرف فقط */
 let remoteAdminDevices = [];
+let applyThemeById = null;      /* تُضبط بعد تحميل الصفحة */
 
 async function sha256hex(str){
   if(crypto.subtle){
@@ -723,16 +783,10 @@ function applyRemoteConfig(cfg){
     const el = document.getElementById("tickerSettings");
     if(el) el.textContent = TICKER_SETTINGS_TEXT;
   }
-  const c = cfg.colors || {};
-  const setVar = (name, val)=>{
-    if(typeof val === "string" && /^#[0-9a-fA-F]{3,8}$/.test(val))
-      document.documentElement.style.setProperty(name, val);
-  };
   if(Array.isArray(cfg.adminDevices)) remoteAdminDevices = cfg.adminDevices;
-  setVar("--c-ticker", c.ticker);
-  setVar("--c-adhan",  c.adhan);
-  setVar("--c-iqamah", c.iqamah);
-  setVar("--c-pname",  c.prayerName);
+  /* الخلفية تُفرض عند صدور نسخة جديدة فقط، فلا تلغي اختيار المستخدم */
+  if(isNew && typeof cfg.theme === "string" && typeof applyThemeById === "function")
+    applyThemeById(cfg.theme);
 
   /* التاريخ الهجري يُفرض فقط عند صدور نسخة جديدة، حتى لا نلغي تعديل المستخدم */
   if(isNew && typeof cfg.hijriOffsetDays === "number"){
@@ -1225,93 +1279,51 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
   $("#gotoSettings").addEventListener("click", ()=>{ ensureAudio(); showScreen("settingsScreen"); });
 
-  /* ---- قرص الألوان: تغيير لون الخلفية ---- */
-function hslToRgb(h, s, l){
-  h = ((h % 360) + 360) % 360 / 360;
-  if(s === 0){ const v = Math.round(l*255); return [v,v,v]; }
-  const q = l < 0.5 ? l*(1+s) : l + s - l*s;
-  const p = 2*l - q;
-  const conv = t=>{
-    if(t < 0) t += 1; if(t > 1) t -= 1;
-    if(t < 1/6) return p + (q-p)*6*t;
-    if(t < 1/2) return q;
-    if(t < 2/3) return p + (q-p)*(2/3 - t)*6;
-    return p;
-  };
-  return [Math.round(conv(h+1/3)*255), Math.round(conv(h)*255), Math.round(conv(h-1/3)*255)];
-}
-/* نفس تدرّج التصميم الأصلي بثلاث درجات إضاءة، بأي درجة لون */
-function applyBg(h, s){
-  const r = document.documentElement.style;
-  r.setProperty("--bg1", "hsl("+h+" "+s+"% 43%)");
-  r.setProperty("--bg2", "hsl("+h+" "+s+"% 31%)");
-  r.setProperty("--bg3", "hsl("+h+" "+s+"% 17%)");
-}
-let pendingBg = {h: settings.bgHue, s: settings.bgSat};
-
-function drawWheel(){
-  const wrap = $("#wheelWrap"), c = $("#clrWheel");
-  const size = Math.round(wrap.getBoundingClientRect().width);
-  if(!size) return;
-  const dpr = Math.min(2, window.devicePixelRatio || 1);
-  const px = Math.round(size * dpr);
-  if(c.width === px) return;            /* مرسوم مسبقاً بنفس المقاس */
-  c.width = px; c.height = px;
-  const ctx = c.getContext("2d");
-  const img = ctx.createImageData(px, px);
-  const R = px/2;
-  for(let y=0; y<px; y++){
-    for(let x=0; x<px; x++){
-      const dx = x - R + 0.5, dy = y - R + 0.5;
-      const dist = Math.sqrt(dx*dx + dy*dy);
-      const i = (y*px + x) * 4;
-      if(dist > R){ img.data[i+3] = 0; continue; }
-      let ang = Math.atan2(dy, dx) * 180 / Math.PI;
-      if(ang < 0) ang += 360;
-      const rgb = hslToRgb(ang, Math.min(1, dist/R), 0.5);
-      img.data[i] = rgb[0]; img.data[i+1] = rgb[1]; img.data[i+2] = rgb[2];
-      img.data[i+3] = dist > R-1 ? Math.round(255*(R-dist)) : 255;
+  /* ---- نظام الخلفيات (Themes) ----
+     لكل خلفية مجموعة ألوان نصوص خاصة بها لتبقى مقروءة على الفاتح والداكن. */
+  /* مسار صورة الثيم — يُستبدل ببيانات مدمجة في النسخة المستضافة */
+  function themeUrl(id, thumb){
+    const key = id + (thumb ? "-t" : "");
+    return (window.THEME_DATA && window.THEME_DATA[key]) ||
+           ("themes/" + key + ".jpg");
+  }
+  function applyTheme(id){
+    const t = THEMES.find(x => x.id === id) || THEMES[0];
+    settings.theme = t.id;
+    const root = document.documentElement.style;
+    for(const k of THEME_VARS) root.removeProperty(k);
+    for(const k in t.vars) root.setProperty(k, t.vars[k]);
+    const app = $("#app");
+    if(t.img){
+      app.style.backgroundImage = "url('" + themeUrl(t.id) + "')";
+      app.style.backgroundColor = t.vars["--bg3"] || "#101014";
+    }else{
+      app.style.backgroundImage = "";
+      app.style.backgroundColor = "";
     }
   }
-  ctx.putImageData(img, 0, 0);
-}
-function placeKnob(){
-  const wrap = $("#wheelWrap");
-  const R = wrap.getBoundingClientRect().width / 2;
-  const rad = pendingBg.h * Math.PI / 180;
-  const dist = (pendingBg.s/100) * R;
-  const k = $("#clrKnob");
-  k.style.left = (R + Math.cos(rad)*dist) + "px";
-  k.style.top  = (R + Math.sin(rad)*dist) + "px";
-  k.style.background = "hsl("+pendingBg.h+" "+pendingBg.s+"% 50%)";
-
-  /* زر الإغلاق يعرض معاينة اللون المختار */
-  const btn = $("#closeClr");
-  btn.style.background = "linear-gradient(180deg, hsl("+pendingBg.h+" "+pendingBg.s+"% 48%), "
-                       + "hsl("+pendingBg.h+" "+pendingBg.s+"% 30%))";
-  const rgb = hslToRgb(pendingBg.h, pendingBg.s/100, 0.39);
-  const lum = 0.299*rgb[0] + 0.587*rgb[1] + 0.114*rgb[2];
-  btn.style.color = lum > 140 ? "#2a1500" : "#ffffff";
-}
-function pickColor(ev){
-  const r = $("#wheelWrap").getBoundingClientRect();
-  const R = r.width/2;
-  const dx = ev.clientX - r.left - R, dy = ev.clientY - r.top - R;
-  let ang = Math.atan2(dy, dx) * 180 / Math.PI;
-  if(ang < 0) ang += 360;
-  pendingBg = {
-    h: Math.round(ang),
-    s: Math.round(Math.min(1, Math.sqrt(dx*dx + dy*dy)/R) * 100)
-  };
-  applyBg(pendingBg.h, pendingBg.s);
-  placeKnob();
-}
-function openClrPick(){
-  pendingBg = {h: settings.bgHue, s: settings.bgSat};
-  $("#clrPick").classList.add("show");
-  drawWheel();
-  placeKnob();
-}
+  function buildThemeGrid(){
+    const grid = $("#themeGrid");
+    grid.innerHTML = "";
+    for(const t of THEMES){
+      const cell = document.createElement("div");
+      cell.className = "theme-cell" + (t.img ? "" : " classic") +
+                       (t.id === settings.theme ? " sel" : "");
+      if(t.img) cell.style.backgroundImage = "url('" + themeUrl(t.id, true) + "')";
+      cell.innerHTML = "<span>" + t.name + "</span>";
+      cell.addEventListener("click", ()=>{
+        applyTheme(t.id);
+        grid.querySelectorAll(".theme-cell").forEach(c => c.classList.remove("sel"));
+        cell.classList.add("sel");
+      });
+      grid.appendChild(cell);
+    }
+  }
+  function openThemePick(){
+    buildThemeGrid();
+    $("#themePick").classList.add("show");
+  }
+  applyThemeById = applyTheme;   /* ليستخدمها التحكم المركزي */
 
 /* ---- نافذة تحديد الموقع ---- */
   const sel = $("#wilayaSelect");
@@ -1360,26 +1372,7 @@ function openClrPick(){
     $("#locPick").classList.remove("show");
   });
 
-  /* سحب المؤشر داخل القرص */
-  {
-    const wrap = $("#wheelWrap");
-    let dragging = false;
-    wrap.addEventListener("pointerdown", e=>{
-      dragging = true;
-      wrap.setPointerCapture(e.pointerId);
-      pickColor(e);
-      e.preventDefault();
-    });
-    wrap.addEventListener("pointermove", e=>{ if(dragging) pickColor(e); });
-    const end = e=>{
-      dragging = false;
-      if(wrap.hasPointerCapture && wrap.hasPointerCapture(e.pointerId))
-        wrap.releasePointerCapture(e.pointerId);
-    };
-    wrap.addEventListener("pointerup", end);
-    wrap.addEventListener("pointercancel", end);
-  }
-  $("#closeClr").addEventListener("click", ()=>$("#clrPick").classList.remove("show"));
+  $("#closeTheme").addEventListener("click", ()=>$("#themePick").classList.remove("show"));
 
   /* ---- رمز الدخول: 8 أرقام يختارها المشرف، ويُحفظ مشفّراً ---- */
   const PIN_RE = /^\d{8}$/;
@@ -1575,15 +1568,10 @@ function openClrPick(){
     return {
       updatedAt: new Date().toISOString(),
       adminDevices: devices,
+      theme: settings.theme,
       hijriOffsetDays: offsetForHijri(day, month),
       tickerMain: $("#adTickerMain").value.trim() || TICKER_MAIN_TEXT,
-      tickerSettings: $("#adTickerSettings").value.trim() || TICKER_SETTINGS_TEXT,
-      colors: {
-        ticker:     $("#adColTicker").value,
-        adhan:      $("#adColAdhan").value,
-        iqamah:     $("#adColIqamah").value,
-        prayerName: $("#adColName").value
-      }
+      tickerSettings: $("#adTickerSettings").value.trim() || TICKER_SETTINGS_TEXT
     };
   }
   function cssVarOr(name, fallback){
@@ -1596,10 +1584,6 @@ function openClrPick(){
     $("#adMonth").value = hj.month;
     $("#adTickerMain").value = TICKER_MAIN_TEXT;
     $("#adTickerSettings").value = TICKER_SETTINGS_TEXT;
-    $("#adColTicker").value = cssVarOr("--c-ticker", "#ffffff");
-    $("#adColAdhan").value  = cssVarOr("--c-adhan",  "#8fd6ff");
-    $("#adColIqamah").value = cssVarOr("--c-iqamah", "#7dffa0");
-    $("#adColName").value   = cssVarOr("--c-pname",  "#f6dd95");
     $("#adToken").value = localStorage.getItem("adminToken") || "";
     $("#adPinNew").value = "";
     $("#adStatus").textContent = "";
@@ -1753,7 +1737,7 @@ function openClrPick(){
   $("#settingsScreen").addEventListener("click", e=>{
     if(e.target !== e.currentTarget) return;
     stopAdhan();
-    openClrPick();
+    openThemePick();
   });
 
   $("#autoLoc").addEventListener("click", ()=>{
@@ -1792,8 +1776,6 @@ function openClrPick(){
       if(!isNaN(v) && v>=0 && v<=90) settings.iqamah[inp.dataset.key] = v;
     });
     settings.volume = parseInt($("#volSlider").value,10);
-    settings.bgHue = pendingBg.h;
-    settings.bgSat = pendingBg.s;
     applyHijriInputs();
     saveSettings();
     refreshTimes();
@@ -1804,7 +1786,7 @@ function openClrPick(){
 
   /* تهيئة */
   updateAll(".js-wilaya", el=>el.textContent = settings.wilaya);
-  applyBg(settings.bgHue, settings.bgSat);
+  applyTheme(settings.theme);
   refreshBellUI();
   refreshFmtUI();
   refreshTimes();
