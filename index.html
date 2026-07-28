@@ -80,26 +80,38 @@
     display:flex;justify-content:space-between;align-items:flex-start;
     min-height:9.5cqh;z-index:6;position:relative;flex-shrink:0;
   }
+  /* مفاتيح دائرية مجسّمة بنفس هوية مفتاح الضبط، وحوافها تتبع لون الثيم */
   .rosette{
-    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Cdefs%3E%3CradialGradient id='g' cx='0.35' cy='0.3' r='0.95'%3E%3Cstop offset='0' stop-color='%23ef5058'/%3E%3Cstop offset='0.55' stop-color='%23a3131c'/%3E%3Cstop offset='1' stop-color='%23600910'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cg fill='url(%23g)' stroke='%23eecb7a' stroke-width='2.5'%3E%3Ccircle cx='104' cy='60' r='12'/%3E%3Ccircle cx='98.1' cy='82' r='12'/%3E%3Ccircle cx='82' cy='98.1' r='12'/%3E%3Ccircle cx='60' cy='104' r='12'/%3E%3Ccircle cx='38' cy='98.1' r='12'/%3E%3Ccircle cx='21.9' cy='82' r='12'/%3E%3Ccircle cx='16' cy='60' r='12'/%3E%3Ccircle cx='21.9' cy='38' r='12'/%3E%3Ccircle cx='38' cy='21.9' r='12'/%3E%3Ccircle cx='60' cy='16' r='12'/%3E%3Ccircle cx='82' cy='21.9' r='12'/%3E%3Ccircle cx='98.1' cy='38' r='12'/%3E%3C/g%3E%3Ccircle cx='60' cy='60' r='45' fill='url(%23g)' stroke='%23f6dd95' stroke-width='3.5'/%3E%3Ccircle cx='60' cy='60' r='37' fill='none' stroke='%23eecb7a' stroke-width='1.6' opacity='0.85'/%3E%3Cellipse cx='47' cy='42' rx='18' ry='10' fill='rgba(255,255,255,0.16)'/%3E%3C/svg%3E");
-    background-size:contain;background-repeat:no-repeat;background-position:center;
-    filter:drop-shadow(0 0.4cqh 0.8cqh rgba(0,0,0,.5));
+    background:linear-gradient(180deg,var(--btn-bg1,#241007),var(--btn-bg2,#0d0402));
+    border:0.55cqw solid var(--gold);
+    border-radius:50%;
+    box-shadow:
+      0 0.45cqh 1.1cqw rgba(0,0,0,.45),
+      inset 0 0.5cqh 1cqh rgba(255,255,255,.3),
+      inset 0 -0.5cqh 1cqh rgba(0,0,0,.32);
   }
   .badge{
-    width:14cqw;height:14cqw;border:none;background-color:transparent;
-    color:var(--white);display:flex;align-items:center;justify-content:center;
+    width:14cqw;height:14cqw;
+    color:var(--btn-fg,var(--gold-strong));
+    display:flex;align-items:center;justify-content:center;
     font-weight:900;font-size:3.4cqw;cursor:pointer;user-select:none;
-    text-shadow:0 0 0.8cqw rgba(0,0,0,.6);
   }
-  .badge:active{transform:scale(.92);}
+  .badge:active,.power-btn:active{
+    transform:scale(.94);
+    box-shadow:
+      0 0.1cqh 0.4cqw rgba(0,0,0,.4),
+      inset 0 -0.3cqh 0.8cqh rgba(255,255,255,.18),
+      inset 0 0.4cqh 0.9cqh rgba(0,0,0,.35);
+  }
   .side-col{display:flex;flex-direction:column;align-items:center;}
   .power-btn{
-    width:14.5cqw;height:14.5cqw;cursor:pointer;border:none;background-color:transparent;
+    width:14.5cqw;height:14.5cqw;cursor:pointer;
     display:flex;align-items:center;justify-content:center;
   }
-  .power-btn svg.icon{width:44%;height:44%;stroke:var(--gold-strong);stroke-width:2.6;fill:none;stroke-linecap:round;
-    filter:drop-shadow(0 0 0.5cqw rgba(246,221,149,.8));}
-  .power-btn:active{transform:scale(.92);}
+  .power-btn svg.icon{
+    width:44%;height:44%;stroke:var(--btn-fg,var(--gold-strong));
+    stroke-width:2.6;fill:none;stroke-linecap:round;
+  }
 
   /* الموقع */
   .location{
@@ -216,20 +228,29 @@
   .vol-pct{width:100%;color:var(--white);font-size:4cqw;font-weight:900;direction:ltr;text-align:center;}
   input[type=range]{
     -webkit-appearance:none;appearance:none;width:100%;height:1.3cqh;border-radius:1cqh;
-    background:linear-gradient(90deg,#e33540 var(--fill,50%),rgba(255,255,255,.25) var(--fill,50%));
+    background:linear-gradient(90deg,
+      var(--gold) var(--fill,50%),
+      var(--track-bg,rgba(255,255,255,.25)) var(--fill,50%));
     outline:none;direction:ltr;
   }
   input[type=range]::-webkit-slider-thumb{
     -webkit-appearance:none;appearance:none;width:6cqw;height:6cqw;border-radius:50%;
-    background:radial-gradient(circle at 35% 30%,#ef5058,#8f0f16);
-    border:0.5cqw solid var(--gold);box-shadow:0 0 1.2cqw rgba(238,203,122,.8);cursor:pointer;
+    background:linear-gradient(180deg,var(--btn-bg1,#241007),var(--btn-bg2,#0d0402));
+    border:0.5cqw solid var(--gold);cursor:pointer;
+    box-shadow:
+      0 0.3cqh 0.7cqw rgba(0,0,0,.45),
+      inset 0 0.35cqh 0.7cqh rgba(255,255,255,.35),
+      inset 0 -0.3cqh 0.6cqh rgba(0,0,0,.3);
   }
   .sound-btn{
     margin-top:.8cqh;cursor:pointer;width:100%;
-    background:linear-gradient(180deg,#c21823,#7b0d15);
-    color:var(--white);font-size:4.4cqw;font-weight:900;
+    background:linear-gradient(180deg,var(--btn-bg1,#241007),var(--btn-bg2,#0d0402));
+    color:var(--btn-fg,var(--gold-strong));font-size:4.4cqw;font-weight:900;
     border:0.5cqw solid var(--gold);border-radius:6cqw;padding:.5cqh 0;
-    box-shadow:0 0 1.6cqw rgba(238,203,122,.5), inset 0 0.3cqh 0.6cqh rgba(255,255,255,.25);
+    box-shadow:
+      0 0.35cqh 0.9cqw rgba(0,0,0,.35),
+      inset 0 0.4cqh 0.8cqh rgba(255,255,255,.28),
+      inset 0 -0.4cqh 0.8cqh rgba(0,0,0,.28);
     font-family:inherit;
   }
   .sound-btn:active{transform:scale(.96);}
@@ -665,7 +686,7 @@ const PRAYERS = [
 const THEME_VARS = ["--gold","--gold-strong","--gold-dim","--white","--blue",
   "--green","--ticker-bg","--c-ticker","--btn-bg1","--btn-bg2","--btn-fg",
   "--box-bg","--input-bg","--input-fg","--pattern","--bg1","--bg2","--bg3",
-  "--c-ticker","--c-adhan","--c-iqamah","--c-pname"];
+  "--c-ticker","--c-adhan","--c-iqamah","--c-pname","--track-bg"];
 
 /* قالب فاتح: نص داكن على خلفية فاتحة */
 function lightTheme(ink, frame, adhan, iqamah, bar){
@@ -676,7 +697,7 @@ function lightTheme(ink, frame, adhan, iqamah, bar){
     "--btn-bg1":"rgba(255,255,255,.72)", "--btn-bg2":"rgba(255,255,255,.45)",
     "--btn-fg":ink, "--box-bg":"rgba(255,255,255,.55)",
     "--input-bg":"rgba(255,255,255,.9)", "--input-fg":ink,
-    "--pattern":"0"
+    "--track-bg":"rgba(0,0,0,.16)", "--pattern":"0"
   };
 }
 /* قالب داكن: نص فاتح على خلفية داكنة */
@@ -687,7 +708,7 @@ function darkTheme(gold, adhan, iqamah, bar, btn1, btn2, box){
     "--ticker-bg":bar, "--c-ticker":"#ffffff",
     "--btn-bg1":btn1, "--btn-bg2":btn2, "--btn-fg":gold,
     "--box-bg":box, "--input-bg":"rgba(0,0,0,.55)", "--input-fg":"#ffffff",
-    "--pattern":"0"
+    "--track-bg":"rgba(255,255,255,.22)", "--pattern":"0"
   };
 }
 
