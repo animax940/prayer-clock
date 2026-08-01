@@ -132,6 +132,18 @@
     width:100%;height:auto;display:block;
     filter:drop-shadow(0 0.3cqh 0.7cqh rgba(0,0,0,.5));
   }
+  .temp-unit{
+    display:flex;flex-direction:column;align-items:center;gap:.6cqh;
+  }
+  .deg-dot{
+    width:1.7cqw;height:1.7cqw;border-radius:50%;
+    border:0.32cqw solid var(--btn-fg,var(--gold-strong));
+    box-shadow:0 0.15cqh 0.4cqh rgba(0,0,0,.6);
+  }
+  .deg-c{
+    color:var(--btn-fg,var(--gold-strong));font-size:2.5cqw;font-weight:900;
+    line-height:1;text-shadow:0 0.2cqh 0.5cqh rgba(0,0,0,.65);
+  }
 
   /* الموقع */
   .location{
@@ -463,6 +475,10 @@
     </div>
     <div class="dir-widget temp-widget" id="tempWidget" title="درجة الحرارة">
       <canvas id="tempCanvas" width="140" height="140"></canvas>
+      <div class="temp-unit">
+        <span class="deg-dot"></span>
+        <span class="deg-c">C</span>
+      </div>
     </div>
 
     <div class="location"><span class="js-wilaya">مسقط</span></div>
@@ -1182,14 +1198,43 @@ function drawQibla(){
   ctx.fill();
 }
 
+/* أقصر فرق زاوية دائرية بين قراءتين (يتعامل مع التفاف 360/0 بشكل صحيح) */
+function angleDiff(from, to){
+  return ((to - from + 540) % 360) - 180;
+}
+
+let gotAbsoluteEvent = false;   /* لتفضيل الحدث المطلق وتجاهل غير المطلق المكرر */
+let qiblaDrawScheduled = false;
+function scheduleDrawQibla(){
+  if(qiblaDrawScheduled) return;
+  qiblaDrawScheduled = true;
+  requestAnimationFrame(()=>{ qiblaDrawScheduled = false; drawQibla(); });
+}
+
 function onDeviceOrientation(e){
   let heading;
-  if(typeof e.webkitCompassHeading === "number") heading = e.webkitCompassHeading;
-  else if(e.alpha != null) heading = 360 - e.alpha;
-  else return;
-  deviceHeading = ((heading % 360) + 360) % 360;
-  drawQibla();
+  if(typeof e.webkitCompassHeading === "number"){
+    heading = e.webkitCompassHeading;   /* iOS: بوصلة حقيقية دائماً */
+  }else if(e.type === "deviceorientationabsolute" || e.absolute === true){
+    if(e.alpha == null) return;
+    gotAbsoluteEvent = true;
+    heading = 360 - e.alpha;
+  }else{
+    /* حدث deviceorientation غير المطلق قد يصل بالتوازي مع الحدث المطلق
+       بمرجع مختلف، فيسبب تذبذب الإبرة بين قراءتين. نتجاهله إن توفّر
+       حدث مطلق بديل ونعتمد عليه فقط كحل أخير. */
+    if(gotAbsoluteEvent || e.alpha == null) return;
+    heading = 360 - e.alpha;
+  }
+  heading = ((heading % 360) + 360) % 360;
+
+  /* تنعيم أسّي على المسافة الزاوية الدائرية لتثبيت الإبرة ضد ضوضاء الحسّاس */
+  if(deviceHeading == null) deviceHeading = heading;
+  else deviceHeading = (deviceHeading + angleDiff(deviceHeading, heading) * 0.18 + 360) % 360;
+
+  scheduleDrawQibla();
 }
+
 let compassStarted = false;
 function startCompass(){
   if(compassStarted) return;
@@ -1198,12 +1243,14 @@ function startCompass(){
     window.addEventListener("deviceorientationabsolute", onDeviceOrientation, true);
     window.addEventListener("deviceorientation", onDeviceOrientation, true);
   };
+  /* iOS فقط يتطلب إذناً صريحاً من ضمن ضغطة مستخدم؛ الاستدعاء التلقائي
+     عند التحميل يفشل بصمت هناك ويبقى الضغط اليدوي على الودجت بديلاً،
+     بينما يعمل على بقية الأجهزة (أندرويد وغيره) فوراً بلا أي تدخل. */
   if(typeof DeviceOrientationEvent !== "undefined" &&
      typeof DeviceOrientationEvent.requestPermission === "function"){
     DeviceOrientationEvent.requestPermission().then(state=>{
       if(state === "granted") attach();
-      else toast("لم يُسمح بالوصول لبوصلة الجهاز");
-    }).catch(()=>{});
+    }).catch(()=>{ compassStarted = false; });
   }else{
     attach();
   }
@@ -1277,10 +1324,6 @@ function drawTemp(value){
     drawSegDigit(ctx, x, y, dw, dh, SEG7[ch] || "");
     x += dw + gap;
   }
-  /* علامة الدرجة */
-  ctx.beginPath();
-  ctx.arc(x - gap + dw*0.06, y - n*0.015, n*0.045, 0, Math.PI*2);
-  ctx.fill();
   ctx.shadowBlur = 0;
 }
 
@@ -2050,6 +2093,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   refreshTimes();
   updateTicker();
   drawQibla();
+  startCompass();
   locate(false);
   fetchMinistryTable().then(refreshTimes).catch(()=>{});
   tick();
