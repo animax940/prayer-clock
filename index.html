@@ -114,6 +114,34 @@
     stroke-width:2.6;fill:none;stroke-linecap:round;
   }
 
+  /* بوصلة القبلة ودرجة الحرارة — في الفراغ أسفل شارتي 12H والجرس،
+     خارج حدود قوس المحراب (الذي لا يقترب من الزوايا في هذا الارتفاع) */
+  .dir-widget{
+    position:absolute;top:7.4cqh;z-index:9;
+    display:flex;flex-direction:column;align-items:center;gap:.3cqh;
+    width:13cqw;pointer-events:none;
+  }
+  .qibla-widget{right:1cqw;pointer-events:auto;cursor:pointer;}
+  .temp-widget{left:1cqw;}
+  .dir-label{
+    color:var(--btn-fg,var(--gold-strong));font-size:2.5cqw;font-weight:900;
+    text-shadow:0 0.2cqh 0.5cqh rgba(0,0,0,.65);
+  }
+  .qibla-widget canvas{
+    width:100%;height:auto;display:block;
+    filter:drop-shadow(0 0.3cqh 0.7cqh rgba(0,0,0,.5));
+  }
+  .temp-value{
+    margin-top:.4cqh;font-size:4cqw;font-weight:900;direction:ltr;
+    font-variant-numeric:tabular-nums;
+    text-shadow:0 0.2cqh 0.5cqh rgba(0,0,0,.6);
+    padding:.35cqh .6cqw;border-radius:2cqw;
+    background:rgba(0,0,0,.3);border:0.28cqw solid rgba(255,255,255,.22);
+  }
+  .temp-value.t-blue{color:#5bc8f5;}
+  .temp-value.t-orange{color:#ffb04d;}
+  .temp-value.t-red{color:#ff5f52;}
+
   /* الموقع */
   .location{
     width:100%;min-height:5cqh;
@@ -436,6 +464,14 @@
       <div class="side-col">
         <div class="badge rosette js-bell" title="الإشعارات">🔔</div>
       </div>
+    </div>
+
+    <div class="dir-widget qibla-widget" id="qiblaWidget" title="اتجاه القبلة — اضغط لتفعيل البوصلة">
+      <div class="dir-label">القبلة</div>
+      <canvas id="qiblaCanvas" width="140" height="140"></canvas>
+    </div>
+    <div class="dir-widget temp-widget" id="tempWidget" title="درجة الحرارة">
+      <div class="temp-value" id="tempValue">--°</div>
     </div>
 
     <div class="location"><span class="js-wilaya">مسقط</span></div>
@@ -1050,6 +1086,8 @@ function applyWilaya(name, opts){
   updateAll(".js-wilaya", el=>el.textContent = name);
   refreshTimes();
   fetchMinistryTable().then(refreshTimes).catch(()=>{});
+  drawQibla();
+  fetchTemperature();
 }
 
 function locate(showMsg){
@@ -1066,9 +1104,125 @@ function locate(showMsg){
     applyWilaya(name);
     settings.lat = lat; settings.lng = lng;   /* نُبقي إحداثيات الجهاز الدقيقة */
     saveSettings();
+    drawQibla();
+    fetchTemperature();
     if(showMsg) toast("تم تحديد الموقع: " + name);
   }, ()=>{ if(showMsg) toast("تعذر تحديد الموقع — يُعرض آخر موقع محفوظ"); },
   {enableHighAccuracy:true, timeout:10000, maximumAge:600000});
+}
+
+/* ============================================================
+   بوصلة القبلة ودرجة الحرارة
+   القبلة: تُحسب من إحداثيات الجهاز (GPS) نحو الكعبة، وتدور مع
+   بوصلة الجهاز الفعلية (المغناطيسية) إن سمح المستخدم بالوصول إليها.
+   درجة الحرارة: تُجلب من الإنترنت حسب نفس الإحداثيات.
+   ============================================================ */
+const KAABA = {lat:21.4225, lng:39.8262};
+function qiblaBearing(lat, lng){
+  const φ1 = rad(lat), φ2 = rad(KAABA.lat), Δλ = rad(KAABA.lng - lng);
+  const y = Math.sin(Δλ) * Math.cos(φ2);
+  const x = Math.cos(φ1)*Math.sin(φ2) - Math.sin(φ1)*Math.cos(φ2)*Math.cos(Δλ);
+  return (deg(Math.atan2(y, x)) + 360) % 360;
+}
+
+let deviceHeading = null;   /* درجات من الشمال، باتجاه دوران الساعة — null إن لم تُفعَّل البوصلة */
+function drawQibla(){
+  const c = $("#qiblaCanvas");
+  if(!c) return;
+  const ctx = c.getContext("2d");
+  const n = c.width, R = n/2 - 6;
+  ctx.clearRect(0, 0, n, n);
+
+  const cs = getComputedStyle(document.documentElement);
+  const gold = (cs.getPropertyValue("--btn-fg") || cs.getPropertyValue("--gold-strong")).trim() || "#f6dd95";
+
+  /* الإطار */
+  ctx.beginPath();
+  ctx.arc(n/2, n/2, R, 0, Math.PI*2);
+  ctx.fillStyle = "rgba(0,0,0,.32)";
+  ctx.fill();
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = gold;
+  ctx.stroke();
+
+  /* علامة الشمال — تدور عكس اتجاه دوران الجهاز لتبقى مطابقة للواقع */
+  ctx.save();
+  ctx.translate(n/2, n/2);
+  ctx.rotate(rad(-(deviceHeading || 0)));
+  ctx.fillStyle = "rgba(255,255,255,.55)";
+  ctx.font = "bold " + Math.round(n*0.11) + "px sans-serif";
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText("N", 0, -R + n*0.13);
+  ctx.restore();
+
+  /* سهم القبلة الأحمر */
+  const qibla = qiblaBearing(settings.lat, settings.lng);
+  const angle = deviceHeading == null ? qibla : (qibla - deviceHeading + 360) % 360;
+  ctx.save();
+  ctx.translate(n/2, n/2);
+  ctx.rotate(rad(angle));
+  const len = R * 0.78;
+  ctx.beginPath();
+  ctx.moveTo(0, -len);
+  ctx.lineTo(n*0.07, len*0.32);
+  ctx.lineTo(0, len*0.18);
+  ctx.lineTo(-n*0.07, len*0.32);
+  ctx.closePath();
+  ctx.fillStyle = "#e5352c";
+  ctx.shadowColor = "rgba(229,53,44,.7)"; ctx.shadowBlur = 6;
+  ctx.fill();
+  ctx.restore();
+
+  /* مركز البوصلة */
+  ctx.beginPath();
+  ctx.arc(n/2, n/2, n*0.035, 0, Math.PI*2);
+  ctx.fillStyle = gold;
+  ctx.fill();
+}
+
+function onDeviceOrientation(e){
+  let heading;
+  if(typeof e.webkitCompassHeading === "number") heading = e.webkitCompassHeading;
+  else if(e.alpha != null) heading = 360 - e.alpha;
+  else return;
+  deviceHeading = ((heading % 360) + 360) % 360;
+  drawQibla();
+}
+let compassStarted = false;
+function startCompass(){
+  if(compassStarted) return;
+  compassStarted = true;
+  const attach = ()=>{
+    window.addEventListener("deviceorientationabsolute", onDeviceOrientation, true);
+    window.addEventListener("deviceorientation", onDeviceOrientation, true);
+  };
+  if(typeof DeviceOrientationEvent !== "undefined" &&
+     typeof DeviceOrientationEvent.requestPermission === "function"){
+    DeviceOrientationEvent.requestPermission().then(state=>{
+      if(state === "granted") attach();
+      else toast("لم يُسمح بالوصول لبوصلة الجهاز");
+    }).catch(()=>{});
+  }else{
+    attach();
+  }
+}
+
+async function fetchTemperature(){
+  try{
+    const url = "https://api.open-meteo.com/v1/forecast?latitude=" + settings.lat +
+                "&longitude=" + settings.lng + "&current=temperature_2m";
+    const ctl = new AbortController();
+    const timer = setTimeout(()=>ctl.abort(), 8000);
+    const r = await fetch(url, {signal: ctl.signal});
+    clearTimeout(timer);
+    if(!r.ok) throw new Error("http-" + r.status);
+    const j = await r.json();
+    const t = Math.round(j.current.temperature_2m);
+    const el = $("#tempValue");
+    el.textContent = t + "°";
+    el.classList.remove("t-blue", "t-orange", "t-red");
+    el.classList.add(t >= 39 ? "t-red" : t >= 30 ? "t-orange" : "t-blue");
+  }catch(e){ /* تبقى القيمة السابقة عند تعذر الاتصال */ }
 }
 
 /* ---------- أدوات واجهة ---------- */
@@ -1099,7 +1253,10 @@ function renderTable(){
     name.textContent = p.name;
     const iq = document.createElement("div");
     iq.className = "cell iqamah"+hl;
-    iq.textContent = p.hasIqamah ? fmtMinutes(todayTimes[p.key] + settings.iqamah[p.key]) : "—";
+    /* الشروق لا إقامة له شرعاً؛ نعرض فقط وقت انتهاء الكراهة (+5 دقائق) كمعلومة */
+    iq.textContent = p.hasIqamah ? fmtMinutes(todayTimes[p.key] + settings.iqamah[p.key])
+                    : p.key === "sunrise" ? fmtMinutes(todayTimes[p.key] + 5)
+                    : "—";
     tbl.append(adhan,name,iq);
   }
 }
@@ -1302,6 +1459,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
   $("#gotoSettings").addEventListener("click", ()=>{ ensureAudio(); showScreen("settingsScreen"); });
 
+  $("#qiblaWidget").addEventListener("click", startCompass);
+
   /* ---- نظام الخلفيات (Themes) ----
      لكل خلفية مجموعة ألوان نصوص خاصة بها لتبقى مقروءة على الفاتح والداكن. */
   /* مسار صورة الثيم — يُستبدل ببيانات مدمجة في النسخة المستضافة */
@@ -1324,6 +1483,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
       app.style.backgroundImage = "";
       app.style.backgroundColor = "";
     }
+    if(typeof drawQibla === "function") drawQibla();
   }
   function buildThemeGrid(){
     const grid = $("#themeGrid");
@@ -1814,16 +1974,25 @@ document.addEventListener("DOMContentLoaded", ()=>{
   refreshFmtUI();
   refreshTimes();
   updateTicker();
+  drawQibla();
   locate(false);
   fetchMinistryTable().then(refreshTimes).catch(()=>{});
   tick();
   setInterval(tick, 1000);
 
-  /* الإعدادات المركزية: عند الفتح، وكل ساعة، وعند العودة للتطبيق */
-  fetchRemoteConfig();
-  setInterval(fetchRemoteConfig, 3600000);
+  /* تحديث شامل: الإعدادات المركزية وجدول الأوقات والطقس —
+     عند الفتح، وكل 5 دقائق، وعند العودة للتطبيق */
+  async function periodicRefresh(){
+    await fetchRemoteConfig();
+    await fetchMinistryTable().catch(()=>{});
+    refreshTimes();
+    updateTicker();
+    fetchTemperature();
+  }
+  periodicRefresh();
+  setInterval(periodicRefresh, 300000);
   document.addEventListener("visibilitychange", ()=>{
-    if(document.visibilityState === "visible") fetchRemoteConfig();
+    if(document.visibilityState === "visible") periodicRefresh();
   });
 
   /* PWA: عمل بدون إنترنت بعد أول تحميل */
