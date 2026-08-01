@@ -1329,7 +1329,7 @@ function renderTable(){
     iq.className = "cell iqamah"+hl;
     /* الشروق لا إقامة له شرعاً؛ نعرض فقط وقت انتهاء الكراهة (+5 دقائق) كمعلومة */
     iq.textContent = p.hasIqamah ? fmtMinutes(todayTimes[p.key] + settings.iqamah[p.key])
-                    : p.key === "sunrise" ? fmtMinutes(todayTimes[p.key] + 5)
+                    : p.key === "sunrise" ? fmtMinutes(todayTimes[p.key] + 20)
                     : "—";
     tbl.append(adhan,name,iq);
   }
