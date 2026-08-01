@@ -23,6 +23,7 @@
     --bg1:hsl(356 79% 43%);
     --bg2:hsl(356 79% 31%);
     --bg3:hsl(356 79% 17%);
+    --disc-bg:hsl(356 55% 9%);
   }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{height:100%;height:100svh;overscroll-behavior:none;}
@@ -122,27 +123,15 @@
     width:13cqw;pointer-events:none;
   }
   .qibla-widget{right:1cqw;pointer-events:auto;cursor:pointer;}
-  .temp-widget{left:1cqw;}
+  .temp-widget{left:1cqw;top:6.1cqh;}
   .dir-label{
     color:var(--btn-fg,var(--gold-strong));font-size:2.5cqw;font-weight:900;
     text-shadow:0 0.2cqh 0.5cqh rgba(0,0,0,.65);
   }
-  .qibla-widget canvas{
+  .dir-widget canvas{
     width:100%;height:auto;display:block;
     filter:drop-shadow(0 0.3cqh 0.7cqh rgba(0,0,0,.5));
   }
-  .temp-value{
-    width:100%;aspect-ratio:1;border-radius:50%;
-    display:flex;align-items:center;justify-content:center;
-    font-size:3.6cqw;font-weight:900;direction:ltr;
-    font-variant-numeric:tabular-nums;
-    background:#000;border:0.28cqw solid rgba(255,255,255,.25);
-    box-shadow:0 0.3cqh 0.7cqh rgba(0,0,0,.55), inset 0 0 1.6cqw rgba(0,0,0,.7);
-    color:#8a8a8a;
-  }
-  .temp-value.t-blue{color:#5fd9ff;text-shadow:0 0 1.6cqw #22c3ff,0 0 0.5cqw #d3f6ff;}
-  .temp-value.t-orange{color:#ffbe4d;text-shadow:0 0 1.6cqw #ff9d00,0 0 0.5cqw #ffe6bd;}
-  .temp-value.t-red{color:#ff5648;text-shadow:0 0 1.6cqw #ff1f0f,0 0 0.5cqw #ffc4bd;}
 
   /* الموقع */
   .location{
@@ -473,8 +462,7 @@
       <canvas id="qiblaCanvas" width="140" height="140"></canvas>
     </div>
     <div class="dir-widget temp-widget" id="tempWidget" title="درجة الحرارة">
-      <div class="dir-label" style="visibility:hidden">-</div>
-      <div class="temp-value" id="tempValue">--°</div>
+      <canvas id="tempCanvas" width="140" height="140"></canvas>
     </div>
 
     <div class="location"><span class="js-wilaya">مسقط</span></div>
@@ -727,7 +715,15 @@ const PRAYERS = [
 const THEME_VARS = ["--gold","--gold-strong","--gold-dim","--white","--blue",
   "--green","--ticker-bg","--c-ticker","--btn-bg1","--btn-bg2","--btn-fg",
   "--box-bg","--input-bg","--input-fg","--pattern","--bg1","--bg2","--bg3",
-  "--c-ticker","--c-adhan","--c-iqamah","--c-pname","--track-bg"];
+  "--c-ticker","--c-adhan","--c-iqamah","--c-pname","--track-bg","--disc-bg"];
+
+/* تغميق لون سداسي مع الحفاظ على درجته — لخلفية أقراص البوصلة والحرارة */
+function darkenHex(hex, factor){
+  const h = hex.replace("#","");
+  const r = parseInt(h.substr(0,2),16), g = parseInt(h.substr(2,2),16), b = parseInt(h.substr(4,2),16);
+  const d = v => Math.round((v||0) * (1-factor));
+  return "rgb(" + d(r) + "," + d(g) + "," + d(b) + ")";
+}
 
 /* قالب فاتح: نص داكن على خلفية فاتحة */
 function lightTheme(ink, frame, adhan, iqamah, bar){
@@ -738,7 +734,8 @@ function lightTheme(ink, frame, adhan, iqamah, bar){
     "--btn-bg1":"rgba(255,255,255,.72)", "--btn-bg2":"rgba(255,255,255,.45)",
     "--btn-fg":ink, "--box-bg":"rgba(255,255,255,.55)",
     "--input-bg":"rgba(255,255,255,.9)", "--input-fg":ink,
-    "--track-bg":"rgba(0,0,0,.16)", "--pattern":"0"
+    "--track-bg":"rgba(0,0,0,.16)", "--pattern":"0",
+    "--disc-bg":darkenHex(ink, 0.65)
   };
 }
 /* قالب داكن: نص فاتح على خلفية داكنة */
@@ -749,7 +746,8 @@ function darkTheme(gold, adhan, iqamah, bar, btn1, btn2, box){
     "--ticker-bg":bar, "--c-ticker":"#ffffff",
     "--btn-bg1":btn1, "--btn-bg2":btn2, "--btn-fg":gold,
     "--box-bg":box, "--input-bg":"rgba(0,0,0,.55)", "--input-fg":"#ffffff",
-    "--track-bg":"rgba(255,255,255,.22)", "--pattern":"0"
+    "--track-bg":"rgba(255,255,255,.22)", "--pattern":"0",
+    "--disc-bg":btn2
   };
 }
 
@@ -1138,11 +1136,12 @@ function drawQibla(){
 
   const cs = getComputedStyle(document.documentElement);
   const gold = (cs.getPropertyValue("--btn-fg") || cs.getPropertyValue("--gold-strong")).trim() || "#f6dd95";
+  const discBg = (cs.getPropertyValue("--disc-bg") || "").trim() || "rgba(0,0,0,.32)";
 
-  /* الإطار */
+  /* الإطار — خلفية داكنة بلون الثيم وحافة ذهبية */
   ctx.beginPath();
   ctx.arc(n/2, n/2, R, 0, Math.PI*2);
-  ctx.fillStyle = "rgba(0,0,0,.32)";
+  ctx.fillStyle = discBg;
   ctx.fill();
   ctx.lineWidth = 3;
   ctx.strokeStyle = gold;
@@ -1210,6 +1209,81 @@ function startCompass(){
   }
 }
 
+/* عرض رقمي بأسلوب شاشات LCD القديمة (سبعة قطع)، مرسوم بالكانفاس
+   بلا اعتماد على أي خط خارجي — يعمل بلا إنترنت وبنفس الشكل في كل جهاز. */
+const SEG7 = {
+  "0":"abcdef", "1":"bc", "2":"abged", "3":"abgcd", "4":"fgbc",
+  "5":"afgcd", "6":"afgedc", "7":"abc", "8":"abcdefg", "9":"abcdfg",
+  "-":"g"
+};
+function drawSegDigit(ctx, x0, y0, dw, dh, segs){
+  const th = dh*0.13, hLen = dw*0.86, vLen = dh/2*0.86;
+  const midY = y0+dh/2, topY = y0, botY = y0+dh, leftX = x0, rightX = x0+dw;
+  const hBar = (cx,cy,len)=>{
+    ctx.beginPath();
+    if(ctx.roundRect) ctx.roundRect(cx-len/2, cy-th/2, len, th, th/2);
+    else ctx.rect(cx-len/2, cy-th/2, len, th);
+    ctx.fill();
+  };
+  const vBar = (cx,cy,len)=>{
+    ctx.beginPath();
+    if(ctx.roundRect) ctx.roundRect(cx-th/2, cy-len/2, th, len, th/2);
+    else ctx.rect(cx-th/2, cy-len/2, th, len);
+    ctx.fill();
+  };
+  if(segs.includes("a")) hBar(x0+dw/2, topY, hLen);
+  if(segs.includes("g")) hBar(x0+dw/2, midY, hLen);
+  if(segs.includes("d")) hBar(x0+dw/2, botY, hLen);
+  if(segs.includes("f")) vBar(leftX,  topY+dh*0.25, vLen);
+  if(segs.includes("b")) vBar(rightX, topY+dh*0.25, vLen);
+  if(segs.includes("e")) vBar(leftX,  botY-dh*0.25, vLen);
+  if(segs.includes("c")) vBar(rightX, botY-dh*0.25, vLen);
+}
+
+let lastTemp = null;
+function drawTemp(value){
+  const c = $("#tempCanvas");
+  if(!c) return;
+  const ctx = c.getContext("2d");
+  const n = c.width, R = n/2 - 6;
+  ctx.clearRect(0, 0, n, n);
+
+  const cs = getComputedStyle(document.documentElement);
+  const gold = (cs.getPropertyValue("--btn-fg") || cs.getPropertyValue("--gold-strong")).trim() || "#f6dd95";
+  const discBg = (cs.getPropertyValue("--disc-bg") || "").trim() || "rgba(0,0,0,.32)";
+
+  /* نفس إطار قرص البوصلة تماماً: خلفية داكنة بلون الثيم وحافة ذهبية */
+  ctx.beginPath();
+  ctx.arc(n/2, n/2, R, 0, Math.PI*2);
+  ctx.fillStyle = discBg;
+  ctx.fill();
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = gold;
+  ctx.stroke();
+
+  if(value == null) return;
+  const color = value >= 39 ? "#ff5648" : value >= 30 ? "#ffbe4d" : "#5fd9ff";
+  const glow  = value >= 39 ? "#ff1f0f" : value >= 30 ? "#ff9d00" : "#22c3ff";
+  const digits = String(Math.round(value)).split("");
+
+  const dh = n*0.34, dw = dh*0.56, gap = dh*0.16;
+  const totalW = digits.length*dw + (digits.length-1)*gap;
+  let x = n/2 - totalW/2;
+  const y = n/2 - dh/2 + n*0.02;
+
+  ctx.fillStyle = color;
+  ctx.shadowColor = glow; ctx.shadowBlur = 8;
+  for(const ch of digits){
+    drawSegDigit(ctx, x, y, dw, dh, SEG7[ch] || "");
+    x += dw + gap;
+  }
+  /* علامة الدرجة */
+  ctx.beginPath();
+  ctx.arc(x - gap + dw*0.06, y - n*0.015, n*0.045, 0, Math.PI*2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+}
+
 async function fetchTemperature(){
   try{
     const url = "https://api.open-meteo.com/v1/forecast?latitude=" + settings.lat +
@@ -1220,11 +1294,8 @@ async function fetchTemperature(){
     clearTimeout(timer);
     if(!r.ok) throw new Error("http-" + r.status);
     const j = await r.json();
-    const t = Math.round(j.current.temperature_2m);
-    const el = $("#tempValue");
-    el.textContent = t + "°";
-    el.classList.remove("t-blue", "t-orange", "t-red");
-    el.classList.add(t >= 39 ? "t-red" : t >= 30 ? "t-orange" : "t-blue");
+    lastTemp = Math.round(j.current.temperature_2m);
+    drawTemp(lastTemp);
   }catch(e){ /* تبقى القيمة السابقة عند تعذر الاتصال */ }
 }
 
@@ -1487,6 +1558,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
       app.style.backgroundColor = "";
     }
     if(typeof drawQibla === "function") drawQibla();
+    if(typeof drawTemp === "function") drawTemp(lastTemp);
   }
   function buildThemeGrid(){
     const grid = $("#themeGrid");
