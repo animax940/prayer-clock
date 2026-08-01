@@ -132,17 +132,23 @@
     width:100%;height:auto;display:block;
     filter:drop-shadow(0 0.3cqh 0.7cqh rgba(0,0,0,.5));
   }
+  /* دائرة الدرجة أعلى حرف C وأمامه قليلاً (كرمز °C الحقيقي)، لا فوقه
+     في المنتصف — مع فاصل أمان يمنع التصاقها بالحرف */
   .temp-unit{
-    display:flex;flex-direction:column;align-items:center;gap:.6cqh;
-  }
-  .deg-dot{
-    width:1.7cqw;height:1.7cqw;border-radius:50%;
-    border:0.32cqw solid var(--btn-fg,var(--gold-strong));
-    box-shadow:0 0.15cqh 0.4cqh rgba(0,0,0,.6);
+    position:relative;
+    display:flex;align-items:center;justify-content:center;
+    margin-top:1.6cqh;
   }
   .deg-c{
-    color:var(--btn-fg,var(--gold-strong));font-size:2.5cqw;font-weight:900;
+    color:var(--btn-fg,var(--gold-strong));font-size:5.2cqw;font-weight:900;
     line-height:1;text-shadow:0 0.2cqh 0.5cqh rgba(0,0,0,.65);
+  }
+  .deg-dot{
+    position:absolute;
+    width:1.05cqw;height:1.05cqw;border-radius:50%;
+    border:0.22cqw solid var(--btn-fg,var(--gold-strong));
+    box-shadow:0 0.12cqh 0.35cqh rgba(0,0,0,.6);
+    top:-1.1cqh;left:-1.2cqw;
   }
 
   /* الموقع */
