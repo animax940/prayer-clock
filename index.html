@@ -118,12 +118,12 @@
   /* بوصلة القبلة ودرجة الحرارة — في الفراغ أسفل شارتي 12H والجرس،
      خارج حدود قوس المحراب (الذي لا يقترب من الزوايا في هذا الارتفاع) */
   .dir-widget{
-    position:absolute;top:7.4cqh;z-index:9;
+    position:absolute;top:6.1cqh;z-index:9;
     display:flex;flex-direction:column;align-items:center;gap:.3cqh;
     width:13cqw;pointer-events:none;
   }
   .qibla-widget{right:1cqw;pointer-events:auto;cursor:pointer;}
-  .temp-widget{left:1cqw;top:6.1cqh;}
+  .temp-widget{left:1cqw;}
   .dir-label{
     color:var(--btn-fg,var(--gold-strong));font-size:2.5cqw;font-weight:900;
     text-shadow:0 0.2cqh 0.5cqh rgba(0,0,0,.65);
@@ -458,8 +458,8 @@
     </div>
 
     <div class="dir-widget qibla-widget" id="qiblaWidget" title="اتجاه القبلة — اضغط لتفعيل البوصلة">
-      <div class="dir-label">القبلة</div>
       <canvas id="qiblaCanvas" width="140" height="140"></canvas>
+      <div class="dir-label">القبلة</div>
     </div>
     <div class="dir-widget temp-widget" id="tempWidget" title="درجة الحرارة">
       <canvas id="tempCanvas" width="140" height="140"></canvas>
