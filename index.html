@@ -1386,11 +1386,16 @@ function renderTable(){
   tbl.querySelectorAll(".cell,.pname").forEach(e=>e.remove());
   if(!todayTimes) return;
   const nowMin = currentMinutes();
-  let nextKey = null;
-  for(const p of PRAYERS){ if(p.key!=="sunrise" && todayTimes[p.key] > nowMin){ nextKey=p.key; break; } }
-  if(!nextKey) nextKey = "fajr";
+  /* الصلاة الحالية: آخر أذان دخل وقته فعلاً، فيبقى الشريط عليها حتى
+     يدخل وقت الصلاة التالية بالضبط — لا ينتقل قبل ذلك أبداً */
+  let curKey = null;
   for(const p of PRAYERS){
-    const hl = p.key===nextKey ? " row-hl" : "";
+    if(p.key==="sunrise") continue;
+    if(todayTimes[p.key] <= nowMin) curKey = p.key;
+  }
+  if(!curKey) curKey = "isha";   /* قبل الفجر: ما زلنا في فترة عشاء الأمس */
+  for(const p of PRAYERS){
+    const hl = p.key===curKey ? " row-hl" : "";
     const adhan = document.createElement("div");
     adhan.className = "cell adhan"+hl;
     adhan.textContent = fmtMinutes(todayTimes[p.key]);
