@@ -118,7 +118,7 @@
   /* بوصلة القبلة ودرجة الحرارة — في الفراغ أسفل شارتي 12H والجرس،
      خارج حدود قوس المحراب (الذي لا يقترب من الزوايا في هذا الارتفاع) */
   .dir-widget{
-    position:absolute;top:6.1cqh;z-index:9;
+    position:absolute;top:5.6cqh;z-index:9;
     display:flex;flex-direction:column;align-items:center;gap:.3cqh;
     width:13cqw;pointer-events:none;
   }
@@ -137,7 +137,7 @@
   .temp-unit{
     position:relative;
     display:flex;align-items:center;justify-content:center;
-    margin-top:1.6cqh;
+    margin-top:1.1cqh;
   }
   .deg-c{
     color:var(--btn-fg,var(--gold-strong));font-size:5.2cqw;font-weight:900;
@@ -196,6 +196,12 @@
   .ptable .row-hl::before{
     content:"";position:absolute;inset:-0.4cqh -1cqw;border-radius:2cqw;z-index:-1;
     background:rgba(246,221,149,.10);border:1px solid rgba(246,221,149,.4);
+  }
+  /* اسم الصلاة يومض من دخول وقت الأذان حتى انتهاء العد التنازلي للإقامة */
+  .pname.blinking{animation:pnameBlink 1s ease-in-out infinite;}
+  @keyframes pnameBlink{0%,100%{opacity:1;}50%{opacity:.28;}}
+  @media (prefers-reduced-motion: reduce){
+    .pname.blinking{animation:none;opacity:1;text-decoration:underline wavy currentColor;}
   }
 
   /* العد التنازلي */
@@ -263,6 +269,17 @@
     align-items:center;justify-content:space-evenly;
   }
   .ctrl-stack > *{flex-shrink:0;}
+  /* زوج مفاتيح متناسق بنفس الطول والارتفاع وشكل المفتاح المدوّر */
+  .ctrl-row{width:100%;display:flex;gap:3cqw;}
+  .ctrl-row .pill-half{flex:1;width:auto;margin:0;font-size:3.7cqw;padding:.5cqh 0;}
+  .sound-btn.playing{
+    box-shadow:
+      0 0.35cqh 0.9cqw rgba(0,0,0,.35),
+      inset 0 0.4cqh 0.8cqh rgba(255,255,255,.28),
+      inset 0 -0.4cqh 0.8cqh rgba(0,0,0,.28),
+      0 0 1.6cqw var(--gold);
+    border-color:var(--gold-strong);
+  }
   .vol-wrap{width:100%;display:flex;flex-direction:column;align-items:center;gap:.6cqh;}
   .vol-pct{
     width:100%;color:var(--white);font-size:3.4cqw;font-weight:900;
@@ -551,8 +568,14 @@
     </div>
 
     <div class="ctrl-stack">
-      <button class="sound-btn" id="updateCalendar">🗓️ تحديث البيانات</button>
-      <button class="sound-btn" id="soundBtn">🔊 الصوت الاول</button>
+      <div class="ctrl-row">
+        <button class="sound-btn pill-half" id="updateCalendar">🗓️ تحديث البيانات</button>
+        <button class="sound-btn pill-half" id="azkarMorningBtn">☀️ أذكار الصباح</button>
+      </div>
+      <div class="ctrl-row">
+        <button class="sound-btn pill-half" id="soundBtn">🔊 الصوت الاول</button>
+        <button class="sound-btn pill-half" id="azkarEveningBtn">🌙 أذكار المساء</button>
+      </div>
       <div class="vol-wrap">
         <div class="vol-pct" id="volPct">70%</div>
         <input type="range" id="volSlider" min="0" max="100" value="70">
@@ -1374,6 +1397,7 @@ function renderTable(){
     const name = document.createElement("div");
     name.className = "pname"+hl;
     name.textContent = p.name;
+    name.dataset.key = p.key;
     const iq = document.createElement("div");
     iq.className = "cell iqamah"+hl;
     /* الشروق لا إقامة له شرعاً؛ نعرض فقط وقت انتهاء الكراهة (+5 دقائق) كمعلومة */
@@ -1416,6 +1440,33 @@ function playIqamahTone(){
 let adhanAudio = null;
 function stopAdhan(){
   if(adhanAudio){ try{ adhanAudio.pause(); }catch(e){} adhanAudio = null; }
+}
+
+/* ---------- أذكار الصباح والمساء: تشغيل مستقل عن أصوات التنبيه ---------- */
+const AZKAR = {
+  morning: {file:"sounds/azkar_morning.mp3", btn:"#azkarMorningBtn"},
+  evening: {file:"sounds/azkar_evening.mp3", btn:"#azkarEveningBtn"}
+};
+let azkarAudio = null, azkarPlayingId = null;
+function updateAzkarButtons(){
+  for(const id in AZKAR) $(AZKAR[id].btn).classList.toggle("playing", azkarPlayingId === id);
+}
+function stopAzkar(){
+  if(azkarAudio){ try{ azkarAudio.pause(); }catch(e){} azkarAudio = null; }
+  azkarPlayingId = null;
+  updateAzkarButtons();
+}
+function toggleAzkar(id){
+  if(azkarPlayingId === id){ stopAzkar(); return; }
+  stopAzkar();
+  ensureAudio();
+  const a = new Audio(AZKAR[id].file);
+  a.volume = Math.min(1, Math.max(0, settings.volume/100));
+  a.onended = stopAzkar;
+  a.onerror = ()=>{ stopAzkar(); toast("تعذر تشغيل الملف"); };
+  azkarAudio = a; azkarPlayingId = id;
+  a.play().catch(()=>{ stopAzkar(); toast("تعذر تشغيل الملف"); });
+  updateAzkarButtons();
 }
 function playAdhan(){
   if(!settings.bellOn) return;
@@ -1474,6 +1525,10 @@ function tick(){
     $("#countdownIdle").style.display="block";
     $("#countdownActive").style.display="none";
   }
+  /* وميض اسم الصلاة طوال فترة الأذان حتى الإقامة */
+  document.querySelectorAll("#ptable .pname").forEach(el=>{
+    el.classList.toggle("blinking", !!active && el.dataset.key === active.p.key);
+  });
 
   /* تنبيه صوتي عند الأذان وعند الإقامة */
   if(todayTimes && s===0){
@@ -1575,6 +1630,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   updateAll(".js-bell", el=>el.addEventListener("click", ()=>{
     settings.bellOn = !settings.bellOn; saveSettings();
     if(!settings.bellOn) stopAdhan();
+    stopAzkar();
     refreshBellUI(); updateTicker();
     toast(settings.bellOn ? "تم تفعيل الإشعارات والصوت" : "تم إيقاف الإشعارات والصوت");
     if(settings.bellOn){ ensureAudio(); }
@@ -2040,6 +2096,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   $("#mainScreen").addEventListener("click", e=>{
     if(e.target !== e.currentTarget) return;
     stopAdhan();
+    stopAzkar();
   });
   $("#settingsScreen").addEventListener("click", e=>{
     if(e.target !== e.currentTarget) return;
@@ -2056,9 +2113,13 @@ document.addEventListener("DOMContentLoaded", ()=>{
   $("#volSlider").addEventListener("input", ()=>{
     updateVolUI();
     settings.volume = parseInt($("#volSlider").value,10)||0;
-    if(adhanAudio) adhanAudio.volume = Math.min(1, Math.max(0, settings.volume/100));
+    const v = Math.min(1, Math.max(0, settings.volume/100));
+    if(adhanAudio) adhanAudio.volume = v;
+    if(azkarAudio) azkarAudio.volume = v;
     saveSettings();
   });
+  $("#azkarMorningBtn").addEventListener("click", ()=>{ ensureAudio(); toggleAzkar("morning"); });
+  $("#azkarEveningBtn").addEventListener("click", ()=>{ ensureAudio(); toggleAzkar("evening"); });
   $("#soundBtn").addEventListener("click", ()=>{
     if(adhanAudio){ stopAdhan(); } /* إيقاف المعاينة السابقة */
     settings.soundIndex = (settings.soundIndex+1)%SOUNDS.length;
