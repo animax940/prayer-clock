@@ -1459,6 +1459,7 @@ function stopAzkar(){
 function toggleAzkar(id){
   if(azkarPlayingId === id){ stopAzkar(); return; }
   stopAzkar();
+  stopAdhan();   /* لا يتداخل الأذكار مع الأذان */
   ensureAudio();
   const a = new Audio(AZKAR[id].file);
   a.volume = Math.min(1, Math.max(0, settings.volume/100));
@@ -1471,6 +1472,7 @@ function toggleAzkar(id){
 function playAdhan(){
   if(!settings.bellOn) return;
   stopAdhan();
+  stopAzkar();   /* لا يتداخل الأذان مع الأذكار */
   const snd = SOUNDS[settings.soundIndex % SOUNDS.length];
   const a = new Audio(snd.file);
   a.volume = Math.min(1, Math.max(0, settings.volume/100));
