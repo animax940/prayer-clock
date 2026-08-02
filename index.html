@@ -2191,8 +2191,41 @@ document.addEventListener("DOMContentLoaded", ()=>{
   /* PWA: عمل بدون إنترنت بعد أول تحميل */
   if("serviceWorker" in navigator &&
      (location.protocol==="https:" || location.hostname==="localhost")){
-    navigator.serviceWorker.register("sw.js").catch(()=>{});
+    navigator.serviceWorker.register("sw.js").then(reg=>{
+      setInterval(()=>reg.update().catch(()=>{}), 300000);
+    }).catch(()=>{});
   }
+
+  /* تحديث تلقائي لكل من فتح التطبيق من قبل — لا حاجة لتوزيع رابط
+     جديد بعد أي تعديل. نقارن مصدر الصفحة الفعلي دورياً (لا نعتمد
+     على ذاكرة المتصفح ولا على تغيّر sw.js تحديداً)، وإن اختلف نطبّق
+     التحديث فوراً ما لم يكن المستخدم وسط استخدام حسّاس (شاشة التحكم
+     أو رمز الدخول أو صوت أذان/أذكار قيد التشغيل)، فننتظره حتى ينتهي. */
+  let pageSourceSnapshot = null;
+  async function checkForUpdate(){
+    try{
+      const r = await fetch(location.pathname, {cache:"no-store"});
+      if(!r.ok) return;
+      const txt = await r.text();
+      if(pageSourceSnapshot === null){ pageSourceSnapshot = txt; return; }
+      if(txt === pageSourceSnapshot) return;
+      const busy = ()=>
+        ($("#adminPick") && $("#adminPick").classList.contains("show")) ||
+        ($("#pinGate") && $("#pinGate").classList.contains("show")) ||
+        (typeof adhanAudio !== "undefined" && adhanAudio && !adhanAudio.paused) ||
+        (typeof azkarAudio !== "undefined" && azkarAudio && !azkarAudio.paused);
+      const tryReload = ()=>{
+        if(busy()){ setTimeout(tryReload, 5000); return; }
+        location.reload();
+      };
+      tryReload();
+    }catch(e){ /* بلا إنترنت مؤقتاً — نعاود المحاولة في الدورة التالية */ }
+  }
+  checkForUpdate();
+  setInterval(checkForUpdate, 300000);
+  document.addEventListener("visibilitychange", ()=>{
+    if(document.visibilityState === "visible") checkForUpdate();
+  });
   /* إبقاء الشاشة مضاءة عند استخدامه كشاشة عرض دائمة */
   async function requestWakeLock(){
     try{ if("wakeLock" in navigator) await navigator.wakeLock.request("screen"); }catch(e){}
