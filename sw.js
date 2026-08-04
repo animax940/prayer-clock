@@ -1,5 +1,5 @@
 /* منبه الصلاة — Service Worker: عمل كامل بدون إنترنت بعد أول تحميل */
-const CACHE = "prayer-clock-v10";
+const CACHE = "prayer-clock-v11";
 const ASSETS = [
   "./",
   "index.html",
@@ -68,5 +68,40 @@ self.addEventListener("fetch", e => {
         return res;
       }).catch(() => hit)
     )
+  );
+});
+
+/* إشعار الأذان: يصل من خادم الدفع حتى والتطبيق مغلق تماماً.
+   أيقونة التطبيق (بحواف دائرية عبر نسخة القص الآمنة)، نص عربي بمحاذاة
+   صحيحة، اهتزاز نابض، وزر إغلاق صريح. */
+self.addEventListener("push", event => {
+  let data = {};
+  try{ data = event.data ? event.data.json() : {}; }
+  catch(e){ data = { body: event.data ? event.data.text() : "" }; }
+
+  const title = data.title || "🕌 منبه الصلاة";
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body: data.body || "",
+      icon: "icon-maskable-512.png",
+      badge: "icon-192.png",
+      dir: "rtl",
+      lang: "ar",
+      tag: "adhan-alert",
+      renotify: true,
+      vibrate: [300, 150, 300, 150, 300, 150, 500],
+      actions: [{ action: "close", title: "إغلاق" }]
+    })
+  );
+});
+
+self.addEventListener("notificationclick", event => {
+  event.notification.close();
+  if(event.action === "close") return;   /* المستخدم ضغط إغلاق فقط */
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(list => {
+      for(const c of list) if("focus" in c) return c.focus();
+      if(self.clients.openWindow) return self.clients.openWindow("./");
+    })
   );
 });
