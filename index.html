@@ -151,6 +151,36 @@
     top:-1.1cqh;left:-1.2cqw;
   }
 
+  /* إطار الأذان المنبثق — فوق كل شيء، يُغلق بالضغط في أي مكان */
+  .adhan-overlay{
+    position:fixed;inset:0;z-index:100;display:none;
+    align-items:center;justify-content:center;
+    background:rgba(4,4,8,.86);backdrop-filter:blur(3px);
+    cursor:pointer;
+  }
+  .adhan-overlay.show{display:flex;animation:adhanFadeIn .25s ease;}
+  @keyframes adhanFadeIn{from{opacity:0;}to{opacity:1;}}
+  .adhan-card{
+    width:78%;max-width:80cqw;text-align:center;
+    background:linear-gradient(180deg,var(--btn-bg1,#241007),var(--btn-bg2,#0d0402));
+    border:0.6cqw solid var(--gold);border-radius:6cqw;
+    padding:6cqh 6cqw;cursor:default;
+    box-shadow:0 1cqh 3cqh rgba(0,0,0,.6), 0 0 4cqw rgba(238,203,122,.35);
+    animation:adhanPop .35s cubic-bezier(.34,1.56,.64,1);
+  }
+  @keyframes adhanPop{from{transform:scale(.85);opacity:0;}to{transform:scale(1);opacity:1;}}
+  .adhan-icon{font-size:14cqw;animation:adhanPulse 1.4s ease-in-out infinite;}
+  @keyframes adhanPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.12);}}
+  .adhan-title{
+    color:var(--btn-fg,var(--gold-strong));font-size:6cqw;font-weight:900;
+    margin-top:2cqh;line-height:1.4;
+  }
+  .adhan-sub{color:var(--white);font-size:4cqw;font-weight:700;margin-top:1cqh;opacity:.9;}
+  .adhan-close{
+    color:rgba(255,255,255,.55);font-size:3cqw;font-weight:700;
+    margin-top:3cqh;padding-top:1.5cqh;border-top:1px solid rgba(255,255,255,.15);
+  }
+
   /* الموقع */
   .location{
     width:100%;min-height:5cqh;
@@ -489,6 +519,17 @@
       </div>
       <div class="side-col">
         <div class="badge rosette js-bell" title="الإشعارات">🔔</div>
+      </div>
+    </div>
+
+    <!-- إطار الأذان المنبثق: يظهر فوق كل شيء عند دخول وقت الأذان
+         والتطبيق مفتوح، أو عند اختبار المعاينة. اضغط في أي مكان لإغلاقه. -->
+    <div class="adhan-overlay" id="adhanOverlay">
+      <div class="adhan-card">
+        <div class="adhan-icon">🕌</div>
+        <div class="adhan-title" id="adhanOverlayTitle">حان الآن موعد أذان الظهر</div>
+        <div class="adhan-sub" id="adhanOverlaySub">مسقط</div>
+        <div class="adhan-close">✕ اضغط للإغلاق</div>
       </div>
     </div>
 
@@ -1423,17 +1464,21 @@ async function refreshPushUI(){
   }
 }
 
+/* المتصفح يمنع إعادة السؤال بعد الحظر الصريح — لا حلّ برمجي، فقط
+   نوضّح للمستخدم أين يُلغي الحظر يدوياً من إعدادات المتصفح نفسه */
+const BLOCKED_HINT = "محظورة من المتصفح: اضغط 🔒 بجانب رابط الموقع ← الأذونات ← الإشعارات ← السماح، ثم أعد تحميل الصفحة";
+
 async function enablePushNotifications(){
   const hint = $("#pushHint");
   if(Notification.permission === "denied"){
     hint.style.color = "#ff9a9a";
-    hint.textContent = "الإشعارات محظورة من إعدادات المتصفح — فعّلها من هناك أولاً";
+    hint.textContent = BLOCKED_HINT;
     return;
   }
   const perm = await Notification.requestPermission();
   if(perm !== "granted"){
     hint.style.color = "#ff9a9a";
-    hint.textContent = "لم يُسمح بالإشعارات";
+    hint.textContent = Notification.permission === "denied" ? BLOCKED_HINT : "لم يُسمح بالإشعارات";
     return;
   }
   try{
@@ -1481,33 +1526,23 @@ async function disablePushNotifications(){
   await refreshPushUI();
 }
 
-/* معاينة محلية بالكامل: تعرض الإشعار على هذا الجهاز فقط، بلا اشتراك
-   ولا اتصال بخادم الدفع — فقط لرؤية شكله فعلياً قبل التفعيل */
+/* إطار الأذان المنبثق — يظهر فوق كل شيء على الشاشة، ويُغلق بالضغط
+   في أي مكان. يعمل فقط والتطبيق مفتوح فعلياً (لا بديل ويب لهذا حين
+   يكون التطبيق مغلقاً — عندها إشعار النظام هو الوسيلة الوحيدة). */
+function showAdhanOverlay(title, sub){
+  $("#adhanOverlayTitle").textContent = title;
+  $("#adhanOverlaySub").textContent = sub || settings.wilaya;
+  $("#adhanOverlay").classList.add("show");
+}
+function hideAdhanOverlay(){
+  $("#adhanOverlay").classList.remove("show");
+}
+
+/* معاينة محلية بالكامل: تعرض الإطار المنبثق (نفس ما سيظهر فعلياً
+   والتطبيق مفتوح) — لا صلة لها بإشعار النظام ولا تحتاج أي إذن،
+   لذا تعمل فوراً بلا أي شرط */
 async function previewNotification(){
-  if(!(await pushSupported())){
-    toast("الإشعارات غير مدعومة على هذا المتصفح");
-    return;
-  }
-  if(Notification.permission !== "granted"){
-    const perm = await Notification.requestPermission();
-    if(perm !== "granted"){ toast("لم يُسمح بالإشعارات"); return; }
-  }
-  try{
-    const reg = await navigator.serviceWorker.ready;
-    await reg.showNotification("🕌 حان الآن موعد أذان الظهر", {
-      body: "منبه الصلاة — " + settings.wilaya + " (معاينة تجريبية)",
-      icon: "icon-maskable-512.png",
-      badge: "icon-192.png",
-      dir: "rtl",
-      lang: "ar",
-      tag: "adhan-preview",
-      renotify: true,
-      vibrate: [300, 150, 300, 150, 300, 150, 500],
-      actions: [{ action: "close", title: "إغلاق" }],
-    });
-  }catch(e){
-    toast("تعذّرت المعاينة على هذا الجهاز");
-  }
+  showAdhanOverlay("🕌 حان الآن موعد أذان الظهر (معاينة)", settings.wilaya);
 }
 
 /* ---------- أدوات واجهة ---------- */
@@ -1682,7 +1717,7 @@ function tick(){
     for(const p of PRAYERS){
       if(p.key==="sunrise") continue;
       const stampA = lastDay+"-"+p.key+"-adhan", stampI = lastDay+"-"+p.key+"-iqamah";
-      if(cur===todayTimes[p.key] && lastAlertStamp!==stampA){ lastAlertStamp=stampA; playAdhan(); toast("حان الآن وقت أذان "+p.name); }
+      if(cur===todayTimes[p.key] && lastAlertStamp!==stampA){ lastAlertStamp=stampA; playAdhan(); showAdhanOverlay("🕌 حان الآن موعد أذان "+p.name, settings.wilaya); }
       if(p.hasIqamah && cur===todayTimes[p.key]+settings.iqamah[p.key] && lastAlertStamp!==stampI){ lastAlertStamp=stampI; playIqamahTone(); toast("إقامة صلاة "+p.name); }
     }
     /* تحديث تظليل الصلاة القادمة كل دقيقة */
@@ -2273,6 +2308,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
     if(sub) disablePushNotifications(); else enablePushNotifications();
   });
   $("#pushPreviewBtn").addEventListener("click", previewNotification);
+  $("#adhanOverlay").addEventListener("click", hideAdhanOverlay);
   $("#soundBtn").addEventListener("click", ()=>{
     if(adhanAudio){ stopAdhan(); } /* إيقاف المعاينة السابقة */
     settings.soundIndex = (settings.soundIndex+1)%SOUNDS.length;
