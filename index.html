@@ -626,7 +626,6 @@
     <button class="sound-btn" id="pushToggle" style="width:100%;margin-top:.3cqh">🔔 تفعيل تنبيهات الأذان</button>
     <div style="display:flex;align-items:center;justify-content:center;gap:2cqw;margin-top:.15cqh">
       <div id="pushHint" style="text-align:center;font-size:2.8cqw;font-weight:700;line-height:1.3;min-height:3.2cqw"></div>
-      <button id="pushPreviewBtn" style="background:none;border:none;padding:0;margin:0;cursor:pointer;color:var(--gold-strong);font-size:2.6cqw;font-weight:800;text-decoration:underline;font-family:inherit">🔍 معاينة هنا فقط</button>
     </div>
 
     <div class="ticker"><div class="ticker-inner" id="tickerSettings">تصميم أحمد السعيدي, اللهم اغفر لي ولوالدي ولمن استخدم هذا التطبيق ودعا لنا بالخير ولجميع المسلمين</div></div>
@@ -1538,13 +1537,6 @@ function hideAdhanOverlay(){
   $("#adhanOverlay").classList.remove("show");
 }
 
-/* معاينة محلية بالكامل: تعرض الإطار المنبثق (نفس ما سيظهر فعلياً
-   والتطبيق مفتوح) — لا صلة لها بإشعار النظام ولا تحتاج أي إذن،
-   لذا تعمل فوراً بلا أي شرط */
-async function previewNotification(){
-  showAdhanOverlay("🕌 حان الآن موعد أذان الظهر (معاينة)", settings.wilaya);
-}
-
 /* ---------- أدوات واجهة ---------- */
 const $ = s=>document.querySelector(s);
 function updateAll(sel, fn){ document.querySelectorAll(sel).forEach(fn); }
@@ -2307,7 +2299,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
     const sub = reg ? await reg.pushManager.getSubscription() : null;
     if(sub) disablePushNotifications(); else enablePushNotifications();
   });
-  $("#pushPreviewBtn").addEventListener("click", previewNotification);
   $("#adhanOverlay").addEventListener("click", hideAdhanOverlay);
   $("#soundBtn").addEventListener("click", ()=>{
     if(adhanAudio){ stopAdhan(); } /* إيقاف المعاينة السابقة */
