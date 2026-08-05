@@ -883,6 +883,7 @@ const DEFAULTS = {
   soundIndex:0,
   use24h:true,
   bellOn:true,
+  nativePushEnabled:false,   /* تنبيهات الأذان الأصلية (أندرويد فقط) */
   lat:23.588, lng:58.408, wilaya:"مسقط",
   autoLocate:true,  /* يصبح false عند اختيار الولاية يدوياً */
   theme:"classic"   /* الخلفية المختارة */
@@ -1119,6 +1120,45 @@ function refreshTimes(){
     dataSource = "calc";
   }
   renderTable();
+  scheduleNativeAdhanAlarms();
+}
+
+/* ============================================================
+   تنبيه الأذان الأصلي (تطبيق أندرويد فقط عبر Capacitor) — يجدول
+   منبّهات دقيقة (AlarmManager) لأيام الأذان القادمة، فتظهر فوق كل
+   شيء على الشاشة حتى لو كان التطبيق مغلقاً تماماً. لا وجود لها في
+   نسخة الويب لأن المتصفحات لا تمنح صفحة ويب هذه الصلاحية.
+   ============================================================ */
+const NATIVE = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+
+async function scheduleNativeAdhanAlarms(){
+  if(!NATIVE || !settings.nativePushEnabled) return;
+  const plugin = window.Capacitor.Plugins.AdhanAlarm;
+  if(!plugin) return;
+  const items = [];
+  const now = new Date();
+  for(let d=0; d<7; d++){
+    const date = new Date(now.getFullYear(), now.getMonth(), now.getDate()+d);
+    let times;
+    const row = ministryRow(date);
+    if(row){
+      times = rowToMinutes(row);
+    }else{
+      const t = computePrayerTimes(date, settings.lat, settings.lng);
+      times = {};
+      for(const p of PRAYERS) times[p.key] = hoursToHM(t[p.key]);
+    }
+    for(const p of PRAYERS){
+      if(!p.hasIqamah) continue;   /* الشروق ليس أذاناً */
+      const mins = times[p.key];
+      if(mins==null) continue;
+      const dt = new Date(date.getFullYear(), date.getMonth(), date.getDate(),
+                           Math.floor(mins/60), mins%60, 0, 0);
+      if(dt.getTime() <= Date.now()) continue;
+      items.push({time: dt.getTime(), prayer: p.name, wilaya: settings.wilaya});
+    }
+  }
+  try{ await plugin.schedule({items}); }catch(e){}
 }
 
 /* ---------- التاريخ الهجري ---------- */
@@ -1433,6 +1473,7 @@ function urlBase64ToUint8Array(base64){
 }
 
 async function pushSupported(){
+  if(NATIVE) return true;
   return "serviceWorker" in navigator && "PushManager" in window &&
          (location.protocol === "https:" || location.hostname === "localhost");
 }
@@ -1447,6 +1488,7 @@ async function refreshPushUI(){
     return;
   }
   btn.disabled = false;
+  if(NATIVE){ await refreshNativePushUI(btn, hint); return; }
   try{
     const reg = await navigator.serviceWorker.ready;
     const sub = await reg.pushManager.getSubscription();
@@ -1461,6 +1503,51 @@ async function refreshPushUI(){
   }catch(e){
     btn.textContent = "🔔 تفعيل تنبيهات الأذان";
   }
+}
+
+/* حالة التفعيل على أندرويد: تُحفظ صراحة (وليست مجرد انعكاس لأذونات
+   النظام) حتى يعمل زر الإيقاف بشكل صحيح حتى مع بقاء الأذونات ممنوحة */
+async function refreshNativePushUI(btn, hint){
+  const plugin = window.Capacitor.Plugins.AdhanAlarm;
+  if(!settings.nativePushEnabled){
+    btn.textContent = "🔔 تفعيل تنبيهات الأذان";
+    hint.textContent = "";
+    return;
+  }
+  const exact = (await plugin.canScheduleExactAlarms()).value;
+  const notif = (await plugin.areNotificationsEnabled()).value;
+  btn.textContent = "🔕 إيقاف تنبيهات الأذان";
+  if(exact && notif){
+    hint.textContent = "مفعّلة لولاية " + settings.wilaya + " — تصل حتى والتطبيق مغلق";
+    hint.style.color = "var(--green)";
+  }else{
+    hint.style.color = "#ff9a9a";
+    hint.textContent = !exact ? "يلزم إذن \"منبّهات دقيقة\" من إعدادات النظام"
+                       : "يلزم السماح بالإشعارات من إعدادات النظام";
+  }
+}
+
+async function enableNativePushNotifications(){
+  const plugin = window.Capacitor.Plugins.AdhanAlarm;
+  await plugin.requestNotificationPermission();
+  if(!(await plugin.canScheduleExactAlarms()).value){
+    await plugin.requestExactAlarmPermission();
+  }
+  await plugin.requestIgnoreBatteryOptimizations();
+  settings.nativePushEnabled = true;
+  saveSettings();
+  await scheduleNativeAdhanAlarms();
+  await refreshPushUI();
+  toast("افتح التطبيق مرة يومياً على الأقل ليبقى جدول التنبيهات محدّثاً");
+}
+
+async function disableNativePushNotifications(){
+  const plugin = window.Capacitor.Plugins.AdhanAlarm;
+  await plugin.cancelAll();
+  settings.nativePushEnabled = false;
+  saveSettings();
+  toast("تم إيقاف تنبيهات الأذان");
+  await refreshPushUI();
 }
 
 /* المتصفح يمنع إعادة السؤال بعد الحظر الصريح — لا حلّ برمجي، فقط
@@ -2295,6 +2382,10 @@ document.addEventListener("DOMContentLoaded", ()=>{
   $("#azkarMorningBtn").addEventListener("click", ()=>{ ensureAudio(); toggleAzkar("morning"); });
   $("#azkarEveningBtn").addEventListener("click", ()=>{ ensureAudio(); toggleAzkar("evening"); });
   $("#pushToggle").addEventListener("click", async ()=>{
+    if(NATIVE){
+      if(settings.nativePushEnabled) disableNativePushNotifications(); else enableNativePushNotifications();
+      return;
+    }
     const reg = await navigator.serviceWorker.ready.catch(()=>null);
     const sub = reg ? await reg.pushManager.getSubscription() : null;
     if(sub) disablePushNotifications(); else enablePushNotifications();
@@ -2345,6 +2436,27 @@ document.addEventListener("DOMContentLoaded", ()=>{
   fetchMinistryTable().then(refreshTimes).catch(()=>{});
   tick();
   setInterval(tick, 1000);
+
+  /* عند فتح التطبيق عبر إشعار الأذان (Full-Screen Intent) — سواء كان
+     مغلقاً تماماً أو يعمل بالفعل — نعرض الإطار المنبثق فوراً */
+  async function checkNativeAdhanTrigger(){
+    if(!NATIVE) return;
+    const plugin = window.Capacitor.Plugins.AdhanAlarm;
+    if(!plugin) return;
+    try{
+      const r = await plugin.getPendingTrigger();
+      if(r && r.prayer){
+        playAdhan();
+        showAdhanOverlay("🕌 حان الآن موعد أذان " + r.prayer, r.wilaya || settings.wilaya);
+      }
+    }catch(e){}
+  }
+  checkNativeAdhanTrigger();
+  if(NATIVE){
+    document.addEventListener("visibilitychange", ()=>{
+      if(document.visibilityState === "visible") checkNativeAdhanTrigger();
+    });
+  }
 
   /* تحديث شامل: الإعدادات المركزية وجدول الأوقات والطقس —
      عند الفتح، وكل 5 دقائق، وعند العودة للتطبيق */
