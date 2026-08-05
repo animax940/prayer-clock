@@ -210,23 +210,22 @@
   .greg{color:var(--white);font-size:4.2cqw;font-weight:700;opacity:.95;direction:ltr;}
   .dayname{color:var(--white);font-size:6cqw;font-weight:900;text-shadow:0 0 1.6cqw rgba(255,255,255,.3);}
 
-  /* العد التنازلي حتى الأذان القادم */
-  .adhan-countdown{
-    width:100%;margin-top:.1cqh;text-align:center;direction:ltr;
-    font-variant-numeric:tabular-nums;font-weight:900;
-    font-size:7.2cqw;color:#ff3b3b;
-    text-shadow:0 0 1.6cqw rgba(255,59,59,.55);
-  }
-  .adhan-countdown .cs{font-size:4.6cqw;}
-
   /* جدول الصلوات */
   .ptable{
     width:100%;margin-top:0.2cqh;
     display:grid;grid-template-columns:1fr 1fr 1fr;
     row-gap:0.5cqh;column-gap:1cqw;
     font-variant-numeric:tabular-nums;
+    align-items:center;
   }
   .ptable .head{color:var(--gold-strong);font-size:5cqw;font-weight:900;text-align:center;padding-bottom:.2cqh;}
+  /* العد التنازلي حتى الأذان القادم — بمحاذاة رأسَي الأذان والإقامة */
+  #adhanCountdown{
+    direction:ltr;cursor:pointer;user-select:none;
+    font-size:5.6cqw;color:#ff3b3b;
+    text-shadow:0 0 1.2cqw rgba(255,255,255,.3);
+  }
+  #adhanCountdown .cs{font-size:inherit;}
   .ptable .cell{text-align:center;font-size:5.4cqw;font-weight:900;direction:ltr;line-height:1.2;}
   .ptable .pname{color:var(--c-pname,var(--gold-strong));font-size:5.2cqw;font-weight:900;text-align:center;line-height:1.2;}
   .ptable .adhan{color:var(--c-adhan,var(--blue));text-shadow:0 0 1.2cqw rgba(143,214,255,.35);}
@@ -567,10 +566,8 @@
       <div class="dayname js-dayname">—</div>
     </div>
 
-    <div class="adhan-countdown" id="adhanCountdown">--:--:--<span class="cs">.--</span></div>
-
     <div class="ptable" id="ptable">
-      <div class="head">الأذان</div><div class="head"></div><div class="head">الإقامة</div>
+      <div class="head">الأذان</div><div class="head" id="adhanCountdown">--:--:--<span class="cs">.--</span></div><div class="head">الإقامة</div>
     </div>
 
     <div class="countdown-box" id="countdownBox">
@@ -886,6 +883,12 @@ const SOUNDS = [
   {name:"الصوت الثاني", file:"sounds/adhan2.mp3"}
 ];
 
+/* ألوان ساعة العد التنازلي — تتبدّل بالضغط عليها */
+const COUNTDOWN_COLORS = [
+  "#ffffff", "#ffd400", "#ff3b3b", "#35d46a", "#ff8a3d",
+  "#4fc3f7", "#000000", "#8a5a2b", "#9e9e9e", "#c9a0ff"
+];
+
 /* ---------- الإعدادات المحفوظة ---------- */
 const DEFAULTS = {
   iqamah:{fajr:20,dhuhr:15,asr:15,maghrib:10,isha:15},
@@ -895,6 +898,7 @@ const DEFAULTS = {
   use24h:true,
   bellOn:true,
   nativePushEnabled:false,   /* تنبيهات الأذان الأصلية (أندرويد فقط) */
+  countdownColorIndex:2,     /* لون ساعة العد التنازلي — افتراضياً الأحمر */
   lat:23.588, lng:58.408, wilaya:"مسقط",
   autoLocate:true,  /* يصبح false عند اختيار الولاية يدوياً */
   theme:"classic"   /* الخلفية المختارة */
@@ -1786,6 +1790,17 @@ function renderAdhanCountdown(){
 }
 setInterval(renderAdhanCountdown, 30);
 
+/* لون ساعة العد التنازلي — يتبدّل بالضغط عليها بين 10 ألوان محفوظة */
+function applyCountdownColor(){
+  const el = $("#adhanCountdown");
+  if(el) el.style.color = COUNTDOWN_COLORS[settings.countdownColorIndex % COUNTDOWN_COLORS.length];
+}
+function cycleCountdownColor(){
+  settings.countdownColorIndex = (settings.countdownColorIndex + 1) % COUNTDOWN_COLORS.length;
+  saveSettings();
+  applyCountdownColor();
+}
+
 /* ---------- الحلقة الرئيسية (كل ثانية) ---------- */
 let lastAlertStamp = "";
 let lastDay = new Date().getDate();
@@ -1949,6 +1964,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   $("#gotoSettings").addEventListener("click", ()=>{ ensureAudio(); showScreen("settingsScreen"); });
 
   $("#qiblaWidget").addEventListener("click", startCompass);
+  $("#adhanCountdown").addEventListener("click", cycleCountdownColor);
 
   /* ---- نظام الخلفيات (Themes) ----
      لكل خلفية مجموعة ألوان نصوص خاصة بها لتبقى مقروءة على الفاتح والداكن. */
@@ -2475,6 +2491,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   /* تهيئة */
   updateAll(".js-wilaya", el=>el.textContent = settings.wilaya);
   applyTheme(settings.theme);
+  applyCountdownColor();
   refreshBellUI();
   refreshFmtUI();
   refreshTimes();
