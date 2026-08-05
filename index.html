@@ -205,16 +205,25 @@
   .ampm-live{font-size:5cqw;font-weight:900;color:var(--white);}
 
   /* التاريخ */
-  .dates{display:flex;flex-direction:column;align-items:center;gap:.15cqh;margin-top:.5cqh;}
+  .dates{display:flex;flex-direction:column;align-items:center;gap:.15cqh;margin-top:.3cqh;}
   .hijri{color:var(--gold-strong);font-size:5cqw;font-weight:900;direction:rtl;}
   .greg{color:var(--white);font-size:4.2cqw;font-weight:700;opacity:.95;direction:ltr;}
   .dayname{color:var(--white);font-size:6cqw;font-weight:900;text-shadow:0 0 1.6cqw rgba(255,255,255,.3);}
+
+  /* العد التنازلي حتى الأذان القادم */
+  .adhan-countdown{
+    width:100%;margin-top:.1cqh;text-align:center;direction:ltr;
+    font-variant-numeric:tabular-nums;font-weight:900;
+    font-size:7.2cqw;color:#ff3b3b;
+    text-shadow:0 0 1.6cqw rgba(255,59,59,.55);
+  }
+  .adhan-countdown .cs{font-size:4.6cqw;}
 
   /* جدول الصلوات */
   .ptable{
     width:100%;margin-top:0.2cqh;
     display:grid;grid-template-columns:1fr 1fr 1fr;
-    row-gap:0.95cqh;column-gap:1cqw;
+    row-gap:0.5cqh;column-gap:1cqw;
     font-variant-numeric:tabular-nums;
   }
   .ptable .head{color:var(--gold-strong);font-size:5cqw;font-weight:900;text-align:center;padding-bottom:.2cqh;}
@@ -557,6 +566,8 @@
       <div class="greg js-greg">-- / -- / ----</div>
       <div class="dayname js-dayname">—</div>
     </div>
+
+    <div class="adhan-countdown" id="adhanCountdown">--:--:--<span class="cs">.--</span></div>
 
     <div class="ptable" id="ptable">
       <div class="head">الأذان</div><div class="head"></div><div class="head">الإقامة</div>
@@ -1106,19 +1117,23 @@ async function fetchMinistryTable(){
   return true;
 }
 
+/* أوقات الصلاة لأي تاريخ (اليوم أو مستقبلي) — من جدول الوزارة إن توفر،
+   وإلا بالحساب الفلكي. مشتركة بين عرض اليوم والجدولة والعد التنازلي. */
+function timesForDate(date){
+  const row = ministryRow(date);
+  if(row) return {times: rowToMinutes(row), source: "ministry"};
+  const t = computePrayerTimes(date, settings.lat, settings.lng);
+  const times = {};
+  for(const p of PRAYERS) times[p.key] = hoursToHM(t[p.key]);
+  return {times, source: "calc"};
+}
+
 let todayTimes = null; /* {fajr: min, sunrise: min, ...} */
 let dataSource = "calc"; /* ministry | calc */
 function refreshTimes(){
-  const row = ministryRow(new Date());
-  if(row){
-    todayTimes = rowToMinutes(row);
-    dataSource = "ministry";
-  }else{
-    const t = computePrayerTimes(new Date(), settings.lat, settings.lng);
-    todayTimes = {};
-    for(const p of PRAYERS) todayTimes[p.key] = hoursToHM(t[p.key]);
-    dataSource = "calc";
-  }
+  const r = timesForDate(new Date());
+  todayTimes = r.times;
+  dataSource = r.source;
   renderTable();
   scheduleNativeAdhanAlarms();
 }
@@ -1139,15 +1154,7 @@ async function scheduleNativeAdhanAlarms(){
   const now = new Date();
   for(let d=0; d<7; d++){
     const date = new Date(now.getFullYear(), now.getMonth(), now.getDate()+d);
-    let times;
-    const row = ministryRow(date);
-    if(row){
-      times = rowToMinutes(row);
-    }else{
-      const t = computePrayerTimes(date, settings.lat, settings.lng);
-      times = {};
-      for(const p of PRAYERS) times[p.key] = hoursToHM(t[p.key]);
-    }
+    const times = timesForDate(date).times;
     for(const p of PRAYERS){
       if(!p.hasIqamah) continue;   /* الشروق ليس أذاناً */
       const mins = times[p.key];
@@ -1739,6 +1746,46 @@ function playAdhan(){
   a.play().catch(playIqamahTone);
 }
 
+/* ============================================================
+   العد التنازلي حتى الأذان القادم — يُحسب الفارق من جديد فور دخول
+   وقت كل صلاة، ويُعرض بدقة أجزاء الثانية عبر حلقة سريعة منفصلة عن
+   tick() (التي تعمل كل ثانية فقط، وهذا لا يكفي لسلاسة أجزاء الثانية).
+   ============================================================ */
+let nextAdhanTargetMs = null;
+function updateNextAdhanTarget(now){
+  if(!todayTimes){ nextAdhanTargetMs = null; return; }
+  const nowMin = now.getHours()*60 + now.getMinutes() + now.getSeconds()/60 + now.getMilliseconds()/60000;
+  for(const p of PRAYERS){
+    if(!p.hasIqamah) continue;
+    if(todayTimes[p.key] > nowMin){
+      const t = new Date(now); t.setHours(0,0,0,0); t.setMinutes(todayTimes[p.key]);
+      nextAdhanTargetMs = t.getTime();
+      return;
+    }
+  }
+  /* انتهت صلوات اليوم — الهدف فجر الغد */
+  const tmr = new Date(now.getFullYear(), now.getMonth(), now.getDate()+1);
+  const fajrMin = timesForDate(tmr).times.fajr;
+  const t = new Date(tmr); t.setHours(0,0,0,0); t.setMinutes(fajrMin);
+  nextAdhanTargetMs = t.getTime();
+}
+function renderAdhanCountdown(){
+  const el = $("#adhanCountdown");
+  if(!el) return;
+  if(nextAdhanTargetMs == null){ el.innerHTML = "--:--:--<span class=\"cs\">.--</span>"; return; }
+  const diff = Math.max(0, nextAdhanTargetMs - Date.now());
+  const totalCs = Math.floor(diff/10);
+  const cs = totalCs % 100;
+  const totalSec = Math.floor(totalCs/100);
+  const s = totalSec % 60;
+  const totalMin = Math.floor(totalSec/60);
+  const m = totalMin % 60;
+  const h = Math.floor(totalMin/60);
+  el.innerHTML = String(h).padStart(2,"0")+":"+String(m).padStart(2,"0")+":"+String(s).padStart(2,"0") +
+                 '<span class="cs">.'+String(cs).padStart(2,"0")+'</span>';
+}
+setInterval(renderAdhanCountdown, 30);
+
 /* ---------- الحلقة الرئيسية (كل ثانية) ---------- */
 let lastAlertStamp = "";
 let lastDay = new Date().getDate();
@@ -1763,6 +1810,8 @@ function tick(){
 
   /* يوم جديد → إعادة حساب الأوقات */
   if(now.getDate() !== lastDay){ lastDay = now.getDate(); refreshTimes(); updateTicker(); }
+
+  updateNextAdhanTarget(now);
 
   /* العد التنازلي بين الأذان والإقامة */
   const nowMin = currentMinutes();
