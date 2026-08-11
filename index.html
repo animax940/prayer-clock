@@ -394,6 +394,13 @@
     font-family:inherit;
   }
   .sound-btn:active{transform:scale(.96);}
+  /* أزرار بأيقونة مثبّتة عند الطرف الأيسر (بدل التوسيط مع النص)،
+     تصطف أيقوناتها عمودياً فوق بعضها بين عدة أزرار متتالية */
+  .sound-btn.icon-left{position:relative;display:flex;align-items:center;justify-content:center;}
+  .sound-btn.icon-left .btn-icon{position:absolute;left:4cqw;}
+  .sound-btn.icon-left .btn-label{}
+  .sound-btn.icon-left.off{color:#9e9e9e;border-color:#8a8a8a;background:linear-gradient(180deg,#3a3a3a,#1c1c1c);}
+  #settingsScreen .sound-btn.icon-left{display:flex;}
 
   /* الشاشة الرئيسية: الجدول والعدّاد يملآن ما بين اسم اليوم والشريط،
      ومسافات الأمان الخارجية أكبر من المسافة بين السطور */
@@ -768,11 +775,11 @@
         </div>
       </div>
 
-      <button class="sound-btn" id="pushToggle" style="width:100%;margin-top:.3cqh">🔔 تفعيل تنبيهات الأذان</button>
+      <button class="sound-btn icon-left" id="pushToggle" style="width:100%;margin-top:.3cqh"><span class="btn-icon">🔔</span><span class="btn-label">تفعيل تنبيهات الأذان</span></button>
 
-      <button class="sound-btn" id="countdownToggle" style="width:100%;margin-top:.3cqh">🕐 إخفاء العد التنازلي</button>
-      <button class="sound-btn" id="themeToggle" style="width:100%;margin-top:.3cqh">🎨 المواضيع</button>
-      <button class="sound-btn" id="keyToneToggle" style="width:100%;margin-top:.3cqh">🔈 نغمة المفاتيح</button>
+      <button class="sound-btn icon-left" id="countdownToggle" style="width:100%;margin-top:.3cqh"><span class="btn-icon">🕐</span><span class="btn-label">إخفاء العد التنازلي</span></button>
+      <button class="sound-btn icon-left" id="themeToggle" style="width:100%;margin-top:.3cqh"><span class="btn-icon">🎨</span><span class="btn-label">المواضيع</span></button>
+      <button class="sound-btn icon-left" id="keyToneToggle" style="width:100%;margin-top:.3cqh"><span class="btn-icon">🔈</span><span class="btn-label">نغمة المفاتيح</span></button>
     </div>
 
     <div class="settings-fixed-bottom">
@@ -1043,7 +1050,7 @@ const SOUNDS = [
 ];
 
 /* رقم إصدار التطبيق — يُرقَّى يدوياً بواحد عند كل تحديث جديد يُنشر */
-const APP_VERSION = "08";
+const APP_VERSION = "09";
 
 /* ألوان ساعة العد التنازلي — تتبدّل بالضغط عليها */
 const COUNTDOWN_COLORS = [
@@ -1665,11 +1672,21 @@ async function pushSupported(){
          (location.protocol === "https:" || location.hostname === "localhost");
 }
 
+/* تحديث أيقونة/نص أزرار icon-left دون كسر بنية العنصرين الفرعيين،
+   مع تبديل حالة الرمادي (off) عند إيقاف الخاصية */
+function setBtnIconLabel(btn, icon, label, isOff){
+  if(!btn) return;
+  const iconEl = btn.querySelector(".btn-icon"), labelEl = btn.querySelector(".btn-label");
+  if(iconEl && labelEl){ iconEl.textContent = icon; labelEl.textContent = label; }
+  else btn.textContent = icon + " " + label;
+  btn.classList.toggle("off", !!isOff);
+}
+
 async function refreshPushUI(){
   const btn = $("#pushToggle");
   if(!btn) return;
   if(!await pushSupported()){
-    btn.textContent = "🔕 التنبيهات غير مدعومة على هذا الجهاز";
+    setBtnIconLabel(btn, "🔕", "التنبيهات غير مدعومة على هذا الجهاز", true);
     btn.disabled = true;
     return;
   }
@@ -1678,9 +1695,10 @@ async function refreshPushUI(){
   try{
     const reg = await navigator.serviceWorker.ready;
     const sub = await reg.pushManager.getSubscription();
-    btn.textContent = sub ? "🔕 إيقاف إشعارات الأذان" : "🔔 تفعيل تنبيهات الأذان";
+    if(sub) setBtnIconLabel(btn, "🔕", "إيقاف إشعارات الأذان", false);
+    else setBtnIconLabel(btn, "🔔", "تفعيل تنبيهات الأذان", true);
   }catch(e){
-    btn.textContent = "🔔 تفعيل تنبيهات الأذان";
+    setBtnIconLabel(btn, "🔔", "تفعيل تنبيهات الأذان", true);
   }
 }
 
@@ -1688,10 +1706,10 @@ async function refreshPushUI(){
    النظام) حتى يعمل زر الإيقاف بشكل صحيح حتى مع بقاء الأذونات ممنوحة */
 async function refreshNativePushUI(btn){
   if(!settings.nativePushEnabled){
-    btn.textContent = "🔔 تفعيل تنبيهات الأذان";
+    setBtnIconLabel(btn, "🔔", "تفعيل تنبيهات الأذان", true);
     return;
   }
-  btn.textContent = "🔕 إيقاف إشعارات الأذان";
+  setBtnIconLabel(btn, "🔕", "إيقاف إشعارات الأذان", false);
 }
 
 async function enableNativePushNotifications(){
@@ -1961,7 +1979,8 @@ function applyCountdownVisibility(){
 }
 function refreshCountdownToggleUI(){
   const btn = $("#countdownToggle");
-  if(btn) btn.textContent = settings.showCountdown ? "🕐 إخفاء العد التنازلي" : "🕐 إظهار العد التنازلي";
+  if(settings.showCountdown) setBtnIconLabel(btn, "🕐", "إخفاء العد التنازلي", false);
+  else setBtnIconLabel(btn, "🕐", "إظهار العد التنازلي", true);
 }
 function toggleCountdownVisibility(){
   settings.showCountdown = !settings.showCountdown;
@@ -1977,7 +1996,8 @@ function toggleCountdownVisibility(){
    ============================================================ */
 function refreshKeyToneToggleUI(){
   const btn = $("#keyToneToggle");
-  if(btn) btn.textContent = settings.keyTonesEnabled ? "🔈 إيقاف نغمة المفاتيح" : "🔇 تفعيل نغمة المفاتيح";
+  if(settings.keyTonesEnabled) setBtnIconLabel(btn, "🔈", "إيقاف نغمة المفاتيح", false);
+  else setBtnIconLabel(btn, "🔇", "تفعيل نغمة المفاتيح", true);
 }
 function toggleKeyTones(){
   settings.keyTonesEnabled = !settings.keyTonesEnabled;
