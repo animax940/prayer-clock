@@ -64,6 +64,8 @@
     position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none;
     filter:drop-shadow(0 0 0.9cqw rgba(246,221,149,.75));
   }
+  /* شاشة الضبط: خلفية الثيم فقط، بلا قوس المحراب فوقها */
+  .app.on-settings svg.mihrab{display:none;}
 
   /* ====== الشاشات ====== */
   .screen{
@@ -1931,6 +1933,7 @@ function applyHijriInputs(){
 function showScreen(id){
   $("#mainScreen").classList.toggle("hidden", id!=="mainScreen");
   $("#settingsScreen").classList.toggle("hidden", id!=="settingsScreen");
+  $("#app").classList.toggle("on-settings", id==="settingsScreen");
   if(id==="settingsScreen") buildSettingsUI();
 }
 function refreshBellUI(){
