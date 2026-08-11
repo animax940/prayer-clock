@@ -383,18 +383,37 @@
   }
   .settings-scroll::-webkit-scrollbar{display:none;}
   .settings-fixed-bottom{flex-shrink:0;width:100%;}
-  /* سهمان يومضان على جانب الشاشة يدلّان على وجود مزيد من المحتوى */
+  /* عمودا مثلثات يومضان بالتتابع على جانب الشاشة يدلّان على وجود مزيد
+     من المحتوى — تتابع الإضاءة يتحرك باتجاه الاستمرار في التمرير */
   .scroll-arrow{
     position:absolute;left:1.5cqw;z-index:5;
-    font-size:4cqw;color:var(--gold-strong);
+    display:flex;flex-direction:column;align-items:center;gap:0.4cqh;
     opacity:0;pointer-events:none;
-    text-shadow:0 0 1cqw rgba(246,221,149,.6);
     transition:opacity .25s ease;
   }
-  .scroll-arrow.show{opacity:1;animation:arrowBlink 1.1s ease-in-out infinite;}
-  .scroll-arrow.up{top:9cqh;}
-  .scroll-arrow.down{bottom:19cqh;}
-  @keyframes arrowBlink{0%,100%{opacity:.25;}50%{opacity:1;}}
+  .scroll-arrow.show{opacity:1;}
+  .scroll-arrow.up{top:8cqh;}
+  .scroll-arrow.down{bottom:18.5cqh;}
+  .scroll-arrow .tri{
+    width:0;height:0;opacity:.2;
+    filter:drop-shadow(0 0 0.5cqw rgba(246,221,149,.6));
+  }
+  .scroll-arrow.up .tri{
+    border-left:1.4cqw solid transparent;border-right:1.4cqw solid transparent;
+    border-bottom:2.2cqw solid var(--gold-strong);
+  }
+  .scroll-arrow.down .tri{
+    border-left:1.4cqw solid transparent;border-right:1.4cqw solid transparent;
+    border-top:2.2cqw solid var(--gold-strong);
+  }
+  .scroll-arrow.show .tri{animation:triFlow 1.2s ease-in-out infinite;}
+  .scroll-arrow.down.show .tri:nth-child(1){animation-delay:0s;}
+  .scroll-arrow.down.show .tri:nth-child(2){animation-delay:.15s;}
+  .scroll-arrow.down.show .tri:nth-child(3){animation-delay:.3s;}
+  .scroll-arrow.up.show .tri:nth-child(1){animation-delay:.3s;}
+  .scroll-arrow.up.show .tri:nth-child(2){animation-delay:.15s;}
+  .scroll-arrow.up.show .tri:nth-child(3){animation-delay:0s;}
+  @keyframes triFlow{0%,45%,100%{opacity:.2;}20%{opacity:1;}}
 
   /* ضغط عناصر شاشة الضبط لتتسع داخل الإطار */
   #settingsScreen .topbar{min-height:8.5cqh;}
@@ -669,8 +688,12 @@
       </div>
     </div>
 
-    <div class="scroll-arrow up" id="scrollArrowUp">▲</div>
-    <div class="scroll-arrow down" id="scrollArrowDown">▼</div>
+    <div class="scroll-arrow up" id="scrollArrowUp">
+      <span class="tri"></span><span class="tri"></span><span class="tri"></span>
+    </div>
+    <div class="scroll-arrow down" id="scrollArrowDown">
+      <span class="tri"></span><span class="tri"></span><span class="tri"></span>
+    </div>
 
     <div class="settings-scroll" id="settingsScroll">
       <div class="location"><span class="js-wilaya">مسقط</span></div>
@@ -988,7 +1011,7 @@ const SOUNDS = [
 ];
 
 /* رقم إصدار التطبيق — يُرقَّى يدوياً بواحد عند كل تحديث جديد يُنشر */
-const APP_VERSION = "02";
+const APP_VERSION = "03";
 
 /* ألوان ساعة العد التنازلي — تتبدّل بالضغط عليها */
 const COUNTDOWN_COLORS = [
