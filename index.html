@@ -320,8 +320,7 @@
   .iq-row{display:flex;align-items:center;justify-content:space-between;margin:.5cqh 0;}
   .iq-row label{color:var(--gold-strong);font-size:4.8cqw;font-weight:900;}
   .iq-row.sunrise label{color:var(--white);}
-  .iq-row label{cursor:pointer;user-select:none;transition:color .25s ease;}
-  #iqamahList .iq-row label.editing{color:var(--green)!important;}
+  .iq-row label{user-select:none;}
   .iq-row .num-input{width:24cqw;color:var(--white);}
   /* اختصارات زيادة/إنقاص دقيقة — مثلثات بيضاء داخل الخانة على طرفيها،
      العلوي (زيادة) يميناً والسفلي (إنقاص) يساراً؛ الضغط على الرقم نفسه
@@ -787,7 +786,7 @@
         </div>
       </div>
 
-      <button class="sound-btn icon-left" id="pushToggle" style="width:100%;margin-top:.3cqh"><span class="btn-icon">🔔</span><span class="btn-label">تفعيل تنبيهات الأذان</span></button>
+      <button class="sound-btn icon-left" id="pushToggle" style="width:100%;margin-top:.3cqh"><span class="btn-icon">🔔</span><span class="btn-label">تفعيل إشعارات الأذان</span></button>
 
       <button class="sound-btn icon-left" id="countdownToggle" style="width:100%;margin-top:.3cqh"><span class="btn-icon">🕐</span><span class="btn-label">إخفاء العد التنازلي</span></button>
       <button class="sound-btn icon-left" id="themeToggle" style="width:100%;margin-top:.3cqh"><span class="btn-icon">🎨</span><span class="btn-label">المواضيع</span></button>
@@ -1070,7 +1069,7 @@ const SOUNDS = [
 ];
 
 /* رقم إصدار التطبيق — يُرقَّى يدوياً بواحد عند كل تحديث جديد يُنشر */
-const APP_VERSION = "11";
+const APP_VERSION = "12";
 
 /* ألوان ساعة العد التنازلي — تتبدّل بالضغط عليها */
 const COUNTDOWN_COLORS = [
@@ -1718,9 +1717,9 @@ async function refreshPushUI(){
     const reg = await navigator.serviceWorker.ready;
     const sub = await reg.pushManager.getSubscription();
     if(sub) setBtnIconLabel(btn, "🔕", "إيقاف إشعارات الأذان", false);
-    else setBtnIconLabel(btn, "🔔", "تفعيل تنبيهات الأذان", true);
+    else setBtnIconLabel(btn, "🔔", "تفعيل إشعارات الأذان", true);
   }catch(e){
-    setBtnIconLabel(btn, "🔔", "تفعيل تنبيهات الأذان", true);
+    setBtnIconLabel(btn, "🔔", "تفعيل إشعارات الأذان", true);
   }
 }
 
@@ -1728,7 +1727,7 @@ async function refreshPushUI(){
    النظام) حتى يعمل زر الإيقاف بشكل صحيح حتى مع بقاء الأذونات ممنوحة */
 async function refreshNativePushUI(btn){
   if(!settings.nativePushEnabled){
-    setBtnIconLabel(btn, "🔔", "تفعيل تنبيهات الأذان", true);
+    setBtnIconLabel(btn, "🔔", "تفعيل إشعارات الأذان", true);
     return;
   }
   setBtnIconLabel(btn, "🔕", "إيقاف إشعارات الأذان", false);
@@ -1753,7 +1752,7 @@ async function disableNativePushNotifications(){
   await plugin.cancelAll();
   settings.nativePushEnabled = false;
   saveSettings();
-  toast("تم إيقاف تنبيهات الأذان");
+  toast("تم إيقاف إشعارات الأذان");
   await refreshPushUI();
 }
 
@@ -1791,7 +1790,7 @@ async function enablePushNotifications(){
       }),
     });
     if(!r.ok) throw new Error("http-" + r.status);
-    toast("تم تفعيل تنبيهات الأذان");
+    toast("تم تفعيل إشعارات الأذان");
   }catch(e){
     toast("تعذّر التفعيل — تحقق من الإنترنت وأعد المحاولة");
   }
@@ -1810,7 +1809,7 @@ async function disablePushNotifications(){
       }).catch(()=>{});
       await sub.unsubscribe();
     }
-    toast("تم إيقاف تنبيهات الأذان");
+    toast("تم إيقاف إشعارات الأذان");
   }catch(e){ /* تجاهل — سنعيد فحص الحالة على أي حال */ }
   await refreshPushUI();
 }
@@ -2188,10 +2187,16 @@ function openSecretPanel(){
   $("#secretRowGapSlider").value = settings.secretRowGap;
   applySecretRowGap();
   $("#secretPanel").classList.remove("hidden");
+  /* تجميد تمرير شاشة الضبط المتحركة أثناء الضبط من الشاشة السرية —
+     كانت تنزلق قليلاً من تلقاء نفسها عند تحريك عناصر قرب أسفلها */
+  const scroll = $("#settingsScroll");
+  if(scroll) scroll.style.overflowY = "hidden";
   if(navigator.vibrate) navigator.vibrate([40,30,40,30,80]);
 }
 function closeSecretPanel(){
   $("#secretPanel").classList.add("hidden");
+  const scroll = $("#settingsScroll");
+  if(scroll) scroll.style.overflowY = "";
 }
 
 /* كشف إيماءة "10 ضغطات سريعة" على مفتاح كتم الصوت */
@@ -2316,23 +2321,8 @@ function buildSettingsUI(){
       '</div>';
     list.appendChild(row);
   }
-  /* الضغط على اسم الصلاة (لا الخانة السوداء) هو ما يفتح التعديل
-     بالكيبورد — يُلغى القفل مؤقتاً، تُلوَّن الكلمة أخضر، واهتزاز نبضي */
-  list.querySelectorAll(".iq-label").forEach(lbl=>{
-    lbl.addEventListener("click", ()=>{
-      const inp = list.querySelector('.num-input[data-key="'+lbl.dataset.key+'"]');
-      inp.removeAttribute("readonly");
-      inp.focus();
-      inp.select();
-      lbl.classList.add("editing");
-      vibrateShort();
-      inp.addEventListener("blur", function onBlur(){
-        inp.setAttribute("readonly","");
-        lbl.classList.remove("editing");
-        inp.removeEventListener("blur", onBlur);
-      });
-    });
-  });
+  /* لا تعديل باللمس إطلاقاً على الخانة السوداء ولا على اسم الصلاة —
+     الضبط فقط عبر أسهم الزيادة/الإنقاص */
   list.querySelectorAll(".spin-btn").forEach(btn=>{
     btn.addEventListener("click", ()=>{
       const inp = list.querySelector('.num-input[data-key="'+btn.dataset.key+'"]');
