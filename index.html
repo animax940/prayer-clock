@@ -1981,7 +1981,7 @@ function buildSecretPanelUI(){
     list.appendChild(item);
   }
   const magnetDefault = {x:0, y:0, sx:100, sy:100};
-  const magnetThreshold = {x:2, y:2, sx:3, sy:3};
+  const magnetThreshold = {x:1, y:1, sx:1, sy:1};
   list.querySelectorAll("input[type=range]").forEach(inp=>{
     attachMagnet(inp, magnetDefault[inp.dataset.k], magnetThreshold[inp.dataset.k]);
     inp.addEventListener("input", ()=>{
@@ -2247,7 +2247,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   $("#countdownToggle").addEventListener("click", toggleCountdownVisibility);
   $("#themeToggle").addEventListener("click", openThemePick);
 
-  attachMagnet($("#secretOpacitySlider"), 95, 3);
+  attachMagnet($("#secretOpacitySlider"), 95, 1);
   $("#secretOpacitySlider").addEventListener("input", ()=>{
     settings.secretPanelOpacity = parseInt($("#secretOpacitySlider").value,10);
     applySecretPanelOpacity();
