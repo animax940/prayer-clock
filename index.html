@@ -680,7 +680,7 @@
         <div class="ampm-live js-ampm-live">AM</div>
       </div>
 
-      <div class="set-box">
+      <div class="set-box" id="hijriSetBox">
         <h3>ضبط التاريخ الهجري</h3>
         <div class="hijri-line">
           <span>اليوم</span>
@@ -691,7 +691,7 @@
         </div>
       </div>
 
-      <div class="set-box">
+      <div class="set-box" id="iqamahSetBox">
         <h3 class="gold">الإقامة</h3>
         <div id="iqamahList"></div>
       </div>
@@ -1953,8 +1953,8 @@ const UI_ELEMENTS = [
   {id:"s-topbar",   sel:"#settingsScreen .topbar",      label:"الشريط العلوي (الضبط)"},
   {id:"s-location", sel:"#settingsScreen .location",    label:"اسم الولاية (الضبط)"},
   {id:"s-clock",    sel:"#settingsScreen .clock-wrap",  label:"الساعة (الضبط)"},
-  {id:"s-hijribox", sel:"#settingsScreen .set-box:nth-of-type(1)", label:"صندوق التاريخ الهجري"},
-  {id:"s-iqbox",    sel:"#settingsScreen .set-box:nth-of-type(2)", label:"صندوق الإقامة"},
+  {id:"s-hijribox", sel:"#hijriSetBox",                 label:"صندوق التاريخ الهجري"},
+  {id:"s-iqbox",    sel:"#iqamahSetBox",                label:"صندوق الإقامة"},
   {id:"s-ctrlrow1", sel:"#settingsScreen .ctrl-row:nth-of-type(1)", label:"صف: تحديث البيانات / أذكار الصباح"},
   {id:"s-ctrlrow2", sel:"#settingsScreen .ctrl-row:nth-of-type(2)", label:"صف: الصوت / أذكار المساء"},
   {id:"s-volwrap",  sel:"#settingsScreen .vol-wrap",    label:"شريط الصوت"},
