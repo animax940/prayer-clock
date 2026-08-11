@@ -2158,16 +2158,31 @@ function showScreen(id){
   $("#app").classList.toggle("on-settings", id==="settingsScreen");
   if(id==="settingsScreen"){
     buildSettingsUI();
+    scrollAtEdge = null;
     setTimeout(updateScrollArrows, 50);
   }
 }
 /* سهما التمرير الوامضان: يظهران فقط عند وجود مزيد من المحتوى في ذلك الاتجاه */
+let scrollAtEdge = null;   /* "top" | "bottom" | null — لإصدار صوت النقرة مرة واحدة فقط عند الوصول */
 function updateScrollArrows(){
   const el = $("#settingsScroll");
   const up = $("#scrollArrowUp"), down = $("#scrollArrowDown");
   if(!el || !up || !down) return;
-  up.classList.toggle("show", el.scrollTop > 2);
-  down.classList.toggle("show", el.scrollTop < el.scrollHeight - el.clientHeight - 2);
+  const atTop = el.scrollTop <= 2;
+  const atBottom = el.scrollTop >= el.scrollHeight - el.clientHeight - 2;
+  up.classList.toggle("show", !atTop);
+  down.classList.toggle("show", !atBottom);
+
+  /* مغناطيس بسيط: نقرة صوتية قصيرة عند لمس أقصى ارتفاع أو أقصى انخفاض،
+     مرة واحدة فقط عند الوصول لا أثناء البقاء عندها */
+  const edge = atTop ? "top" : (atBottom ? "bottom" : null);
+  if(edge && edge !== scrollAtEdge) playScrollClick();
+  scrollAtEdge = edge;
+}
+function playScrollClick(){
+  ensureAudio();
+  if(!audioCtx) return;
+  playTone(700, 0, .05, 0.18);
 }
 function refreshBellUI(){
   updateAll(".js-bell", el=>{
