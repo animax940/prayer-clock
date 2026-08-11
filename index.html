@@ -286,10 +286,10 @@
     font-family:inherit;
   }
   .bottom-btn:active{transform:scale(.95);}
-  /* صف الزر السفلي + رقم الإصدار على يساره */
+  /* صف الزر السفلي + رقم الإصدار على يمينه */
   .btn-row{width:100%;flex-shrink:0;position:relative;display:flex;align-items:center;justify-content:center;}
   .version-label{
-    position:absolute;left:2cqw;top:50%;transform:translateY(-50%);
+    position:absolute;right:2cqw;top:50%;transform:translateY(-50%);
     font-size:2.6cqw;font-weight:700;color:var(--white);opacity:.6;
     white-space:nowrap;pointer-events:none;
   }
@@ -372,15 +372,23 @@
       var(--gold) var(--fill,50%),
       var(--track-bg,rgba(255,255,255,.25)) var(--fill,50%));
     outline:none;direction:ltr;
+    /* الضبط من منطقة المؤشر فقط: الشريط نفسه لا يستقبل اللمس، والمؤشر
+       وحده هو ما يُمسك ويُسحب (لا ينتقل بالضغط على أي مكان في الشريط) */
+    pointer-events:none;
   }
   input[type=range]::-webkit-slider-thumb{
     -webkit-appearance:none;appearance:none;width:6cqw;height:6cqw;border-radius:50%;
     background:linear-gradient(180deg,var(--btn-bg1,#241007),var(--btn-bg2,#0d0402));
-    border:0.5cqw solid var(--gold);cursor:pointer;
+    border:0.5cqw solid var(--gold);cursor:pointer;pointer-events:auto;
     box-shadow:
       0 0.3cqh 0.7cqw rgba(0,0,0,.45),
       inset 0 0.35cqh 0.7cqh rgba(255,255,255,.35),
       inset 0 -0.3cqh 0.6cqh rgba(0,0,0,.3);
+  }
+  input[type=range]::-moz-range-thumb{
+    width:6cqw;height:6cqw;border-radius:50%;pointer-events:auto;cursor:pointer;
+    background:linear-gradient(180deg,var(--btn-bg1,#241007),var(--btn-bg2,#0d0402));
+    border:0.5cqw solid var(--gold);
   }
   .sound-btn{
     margin-top:.8cqh;cursor:pointer;width:100%;
@@ -432,7 +440,9 @@
     opacity:0;pointer-events:none;
     transition:opacity .25s ease;
   }
-  .scroll-arrow.show{opacity:1;}
+  /* لا تظهر الأسهم إلا داخل شاشة الضبط فعلياً — مقيّدة بـ on-settings
+     حتى لا تتسرّب مطلقاً إلى الشاشة الرئيسية */
+  .app.on-settings .scroll-arrow.show{opacity:1;}
   .scroll-arrow.up{top:8cqh;}
   .scroll-arrow.down{bottom:18.5cqh;}
   .scroll-arrow .tri{
@@ -447,13 +457,15 @@
     border-left:1.4cqw solid transparent;border-right:1.4cqw solid transparent;
     border-top:2.2cqw solid var(--gold-strong);
   }
-  .scroll-arrow.show .tri{animation:triFlow 1.2s ease-in-out infinite;}
-  .scroll-arrow.down.show .tri:nth-child(1){animation-delay:.3s;}
+  /* العمودان يبدآن الوميض في نفس اللحظة بتناغم: الموجة تنطلق من المثلث
+     الملاصق للمحتوى (t=0) في كلا العمودين معاً ثم تتدرّج للخارج */
+  .app.on-settings .scroll-arrow.show .tri{animation:triFlow 1.2s ease-in-out infinite;}
+  .scroll-arrow.down.show .tri:nth-child(1){animation-delay:0s;}
   .scroll-arrow.down.show .tri:nth-child(2){animation-delay:.15s;}
-  .scroll-arrow.down.show .tri:nth-child(3){animation-delay:0s;}
-  .scroll-arrow.up.show .tri:nth-child(1){animation-delay:0s;}
+  .scroll-arrow.down.show .tri:nth-child(3){animation-delay:.3s;}
+  .scroll-arrow.up.show .tri:nth-child(1){animation-delay:.3s;}
   .scroll-arrow.up.show .tri:nth-child(2){animation-delay:.15s;}
-  .scroll-arrow.up.show .tri:nth-child(3){animation-delay:.3s;}
+  .scroll-arrow.up.show .tri:nth-child(3){animation-delay:0s;}
   @keyframes triFlow{0%,45%,100%{opacity:.2;}20%{opacity:1;}}
 
   /* ضغط عناصر شاشة الضبط لتتسع داخل الإطار */
@@ -621,11 +633,17 @@
     display:flex;flex-direction:column;gap:.4cqh;
   }
   .secret-row label{color:var(--white);font-size:3.2cqw;font-weight:700;}
+  .secret-row label.green-label{color:#35d46a;}
   .secret-row label.blue-label{color:#4fc3f7;}
   .secret-row label.red-label{color:#ff5c5c;}
+  input.green-range{accent-color:#35d46a;}
   input.blue-range{accent-color:#4fc3f7;}
   input.red-range{accent-color:#ff5c5c;}
-  .secret-list{flex:1 1 auto;overflow-y:auto;padding:0 4cqw;}
+  /* منطقة التمرير: تضم المفاتيح الأخضر/الأزرق/الأحمر ثم قائمة العناصر —
+     كلها تتحرك مع التمرير، بينما يبقى مفتاح الشفافية ثابتاً فوقها */
+  .secret-scroll{flex:1 1 auto;min-height:0;overflow-y:auto;scrollbar-width:none;}
+  .secret-scroll::-webkit-scrollbar{display:none;}
+  .secret-list{padding:0 4cqw;}
   /* --secret-gap-scale: نسبة مئوية عن التباعد الافتراضي (1 = 100%)،
      تُطبَّق على كل الأسطر: بين الأقسام وداخل كل قسم على حدّ سواء،
      بلا أي تمدد للنصوص — إزاحة مواضع فقط */
@@ -920,19 +938,27 @@
       <span>⚙️ الشاشة السرية</span>
       <button class="secret-close" id="secretCloseBtn">✕</button>
     </div>
-    <div class="secret-row">
+    <!-- مفتاح الشفافية وحده ثابت أعلى الشاشة السرية -->
+    <div class="secret-row secret-fixed-row">
       <label>شفافية الشاشة السرية</label>
-      <input type="range" id="secretOpacitySlider" min="30" max="100" value="95">
+      <input type="range" id="secretOpacitySlider" min="30" max="100" step="any" value="95">
     </div>
-    <div class="secret-row">
-      <label class="blue-label">تحريك عناصر شاشة الضبط (السلايد) للأعلى/الأسفل معاً</label>
-      <input type="range" class="blue-range" id="slideGroupSlider" min="-30" max="30" value="0">
+    <!-- بقية المفاتيح (الأخضر/الأزرق/الأحمر) وقائمة العناصر تتحرك مع التمرير -->
+    <div class="secret-scroll" id="secretScroll">
+      <div class="secret-row">
+        <label class="green-label">عرض الشاشة السرية (بلا ضغط النصوص)</label>
+        <input type="range" class="green-range" id="secretWidthSlider" min="50" max="100" step="any" value="100">
+      </div>
+      <div class="secret-row">
+        <label class="blue-label">تحريك عناصر شاشة الضبط (السلايد) للأعلى/الأسفل معاً</label>
+        <input type="range" class="blue-range" id="slideGroupSlider" min="-30" max="30" step="any" value="0">
+      </div>
+      <div class="secret-row">
+        <label class="red-label">المسافة بين مفاتيح الشاشة السرية نفسها</label>
+        <input type="range" class="red-range" id="secretRowGapSlider" min="-50" max="100" step="any" value="0">
+      </div>
+      <div class="secret-list" id="secretList"></div>
     </div>
-    <div class="secret-row">
-      <label class="red-label">المسافة بين مفاتيح الشاشة السرية نفسها</label>
-      <input type="range" class="red-range" id="secretRowGapSlider" min="-50" max="100" value="0">
-    </div>
-    <div class="secret-list" id="secretList"></div>
     <button class="secret-save" id="secretSaveBtn">💾 حفظ وإغلاق</button>
   </div>
 </div>
@@ -1075,7 +1101,7 @@ const SOUNDS = [
 ];
 
 /* رقم إصدار التطبيق — يُرقَّى يدوياً بواحد عند كل تحديث جديد يُنشر */
-const APP_VERSION = "13";
+const APP_VERSION = "14";
 
 /* ألوان ساعة العد التنازلي — تتبدّل بالضغط عليها */
 const COUNTDOWN_COLORS = [
@@ -1089,14 +1115,15 @@ const DEFAULTS = {
   hijriOffsetDays:0,
   volume:70,
   soundIndex:0,
-  use24h:true,
-  bellOn:true,
+  use24h:false,              /* 12H هو الافتراضي — يُفرض عند كل تشغيل */
+  bellOn:true,               /* الصوت مفتوح (غير مكتوم) — يُفرض عند كل تشغيل */
   nativePushEnabled:false,   /* تنبيهات الأذان الأصلية (أندرويد فقط) */
   countdownColorIndex:2,     /* لون ساعة العد التنازلي — افتراضياً الأحمر */
   showCountdown:true,        /* إظهار/إخفاء العد التنازلي */
   keyTonesEnabled:true,      /* نغمة قصيرة عند الضغط على أي مفتاح */
   uiOverrides:{},            /* مواضع/أحجام العناصر المخصَّصة من الشاشة السرية */
   secretPanelOpacity:95,     /* شفافية الشاشة السرية نفسها */
+  secretPanelWidth:100,      /* عرض الشاشة السرية (%) — بلا ضغط النصوص */
   slideGroupOffsetY:0,       /* إزاحة عناصر شاشة الضبط (السلايد) كمجموعة واحدة */
   secretRowGap:0,            /* المسافة الإضافية بين مفاتيح الشاشة السرية نفسها */
   lat:23.588, lng:58.408, wilaya:"مسقط",
@@ -1105,11 +1132,16 @@ const DEFAULTS = {
 };
 let settings = loadSettings();
 function loadSettings(){
-  try{
-    const s = JSON.parse(localStorage.getItem("prayerClockSettings"));
-    if(s) return Object.assign({}, DEFAULTS, s, {iqamah:Object.assign({},DEFAULTS.iqamah,s.iqamah)});
-  }catch(e){}
-  return JSON.parse(JSON.stringify(DEFAULTS));
+  let s = null;
+  try{ s = JSON.parse(localStorage.getItem("prayerClockSettings")); }catch(e){}
+  const out = s
+    ? Object.assign({}, DEFAULTS, s, {iqamah:Object.assign({},DEFAULTS.iqamah,s.iqamah)})
+    : JSON.parse(JSON.stringify(DEFAULTS));
+  /* يُفرض عند كل تشغيل: نظام 12 ساعة، والصوت مفتوح (غير مكتوم) —
+     مهما كان المحفوظ، حتى تعود هذه الحالة الافتراضية بعد أي إعادة تشغيل */
+  out.use24h = false;
+  out.bellOn = true;
+  return out;
 }
 function saveSettings(){
   localStorage.setItem("prayerClockSettings", JSON.stringify(settings));
@@ -1160,8 +1192,71 @@ function applyRemoteConfig(cfg){
     settings.hijriOffsetDays = cfg.hijriOffsetDays;
     saveSettings();
   }
+
+  /* تصميم الواجهة من الشاشة السرية: يُطبَّق عند صدور نسخة أحدث فقط
+     (فلا يلغي ضبط المستخدم أثناء جلسته)، ويصل للجميع بعد كل نشر */
+  if(isNew && cfg.ui && typeof cfg.ui === "object"){
+    applySecretConfigPart(cfg.ui);
+  }
+
   if(stamp) localStorage.setItem("configStamp", stamp);
   return true;
+}
+
+/* ترميز/فك ترميز UTF-8 ↔ base64 (لقراءة/كتابة config.json عبر GitHub) */
+function b64EncodeUtf8(str){
+  const bytes = new TextEncoder().encode(str);
+  let bin = ""; for(const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin);
+}
+function b64DecodeUtf8(b64){
+  const bin = atob(String(b64).replace(/\s/g, ""));
+  const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+/* الجزء الخاص بتصميم الشاشة السرية داخل config.json */
+function buildSecretConfigPart(){
+  return {
+    uiOverrides: settings.uiOverrides || {},
+    secretPanelOpacity: settings.secretPanelOpacity,
+    secretPanelWidth: settings.secretPanelWidth,
+    slideGroupOffsetY: settings.slideGroupOffsetY,
+    secretRowGap: settings.secretRowGap
+  };
+}
+function applySecretConfigPart(ui){
+  if(ui.uiOverrides && typeof ui.uiOverrides === "object") settings.uiOverrides = ui.uiOverrides;
+  if(typeof ui.secretPanelOpacity === "number") settings.secretPanelOpacity = ui.secretPanelOpacity;
+  if(typeof ui.secretPanelWidth === "number") settings.secretPanelWidth = ui.secretPanelWidth;
+  if(typeof ui.slideGroupOffsetY === "number") settings.slideGroupOffsetY = ui.slideGroupOffsetY;
+  if(typeof ui.secretRowGap === "number") settings.secretRowGap = ui.secretRowGap;
+  saveSettings();
+  if(typeof applyUiOverrides === "function") applyUiOverrides();
+  if(typeof applySlideGroupOffset === "function") applySlideGroupOffset();
+}
+/* نشر تصميم الشاشة السرية للجميع عبر config.json — يتطلب مفتاح نشر
+   المشرف المخزّن محلياً؛ يدمج التصميم مع بقية حقول الإعدادات المركزية */
+async function publishSecretDesign(){
+  const token = localStorage.getItem("adminToken");
+  if(!token) return {published:false, reason:"no-token"};
+  try{
+    const api = "https://api.github.com/repos/" + REPO + "/contents/config.json";
+    const headers = {"Authorization":"Bearer "+token, "Accept":"application/vnd.github+json"};
+    let sha = null, cur = {};
+    const r = await fetch(api, {headers, cache:"no-store"});
+    if(r.ok){ const j = await r.json(); sha = j.sha; try{ cur = JSON.parse(b64DecodeUtf8(j.content)); }catch(_){ cur = {}; } }
+    else if(r.status === 401) return {published:false, reason:"bad-token"};
+    cur.updatedAt = new Date().toISOString();
+    cur.ui = buildSecretConfigPart();
+    const payload = { message:"تحديث تصميم الواجهة من الشاشة السرية", content: b64EncodeUtf8(JSON.stringify(cur, null, 2)) };
+    if(sha) payload.sha = sha;
+    const put = await fetch(api, {method:"PUT", headers, body: JSON.stringify(payload)});
+    if(!put.ok) return {published:false, reason:"http-"+put.status};
+    localStorage.setItem("configStamp", cur.updatedAt);  /* حتى لا نعيد تطبيقها على أنفسنا كنسخة جديدة */
+    return {published:true};
+  }catch(e){
+    return {published:false, reason:"error"};
+  }
 }
 
 async function fetchRemoteConfig(){
@@ -2145,10 +2240,10 @@ function buildSecretPanelUI(){
     item.className = "secret-item";
     item.innerHTML =
       '<div class="name">'+u.label+'</div>' +
-      '<div class="ctrl-line"><span>يمين / يسار</span><input type="range" min="-40" max="40" value="'+o.x+'" data-id="'+u.id+'" data-k="x"></div>' +
-      '<div class="ctrl-line"><span>أعلى / أسفل</span><input type="range" min="-30" max="30" value="'+o.y+'" data-id="'+u.id+'" data-k="y"></div>' +
-      '<div class="ctrl-line"><span>العرض</span><input type="range" min="50" max="200" value="'+Math.round(o.sx*100)+'" data-id="'+u.id+'" data-k="sx"></div>' +
-      '<div class="ctrl-line"><span>الطول</span><input type="range" min="50" max="200" value="'+Math.round(o.sy*100)+'" data-id="'+u.id+'" data-k="sy"></div>';
+      '<div class="ctrl-line"><span>يمين / يسار</span><input type="range" min="-40" max="40" step="any" value="'+o.x+'" data-id="'+u.id+'" data-k="x"></div>' +
+      '<div class="ctrl-line"><span>أعلى / أسفل</span><input type="range" min="-30" max="30" step="any" value="'+o.y+'" data-id="'+u.id+'" data-k="y"></div>' +
+      '<div class="ctrl-line"><span>العرض</span><input type="range" min="50" max="200" step="any" value="'+(o.sx*100)+'" data-id="'+u.id+'" data-k="sx"></div>' +
+      '<div class="ctrl-line"><span>الطول</span><input type="range" min="50" max="200" step="any" value="'+(o.sy*100)+'" data-id="'+u.id+'" data-k="sy"></div>';
     list.appendChild(item);
   }
   const magnetDefault = {x:0, y:0, sx:100, sy:100};
@@ -2189,6 +2284,12 @@ function attachMagnet(inp, defaultVal, threshold){
 function applySecretPanelOpacity(){
   $("#secretPanel").style.background = "rgba(10,10,14,"+(settings.secretPanelOpacity/100)+")";
 }
+/* عرض الشاشة السرية: يقلّص عرض اللوحة (وبالتالي طول المفاتيح داخلها)
+   دون ضغط النصوص — لأن أحجام الخطوط بوحدات cqw نسبةً للتطبيق لا للّوحة */
+function applySecretPanelWidth(){
+  const w = settings.secretPanelWidth;
+  $("#secretPanel").style.width = (0.9 * w) + "%";
+}
 /* يزيح كل عناصر شاشة الضبط المتمرّرة (السلايد) معاً كمجموعة واحدة للأعلى/الأسفل */
 function applySlideGroupOffset(){
   const el = $("#settingsScroll");
@@ -2204,6 +2305,8 @@ function openSecretPanel(){
   buildSecretPanelUI();
   $("#secretOpacitySlider").value = settings.secretPanelOpacity;
   applySecretPanelOpacity();
+  $("#secretWidthSlider").value = settings.secretPanelWidth;
+  applySecretPanelWidth();
   $("#slideGroupSlider").value = settings.slideGroupOffsetY;
   $("#secretRowGapSlider").value = settings.secretRowGap;
   applySecretRowGap();
@@ -2471,21 +2574,35 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
   attachMagnet($("#secretOpacitySlider"), 95, 1);
   $("#secretOpacitySlider").addEventListener("input", ()=>{
-    settings.secretPanelOpacity = parseInt($("#secretOpacitySlider").value,10);
+    settings.secretPanelOpacity = parseFloat($("#secretOpacitySlider").value);
     applySecretPanelOpacity();
+  });
+  attachMagnet($("#secretWidthSlider"), 100, 1);
+  $("#secretWidthSlider").addEventListener("input", ()=>{
+    settings.secretPanelWidth = parseFloat($("#secretWidthSlider").value);
+    applySecretPanelWidth();
   });
   attachMagnet($("#slideGroupSlider"), 0, 1);
   $("#slideGroupSlider").addEventListener("input", ()=>{
-    settings.slideGroupOffsetY = parseInt($("#slideGroupSlider").value,10);
+    settings.slideGroupOffsetY = parseFloat($("#slideGroupSlider").value);
     applySlideGroupOffset();
   });
   attachMagnet($("#secretRowGapSlider"), 0, 1);
   $("#secretRowGapSlider").addEventListener("input", ()=>{
-    settings.secretRowGap = parseInt($("#secretRowGapSlider").value,10);
+    settings.secretRowGap = parseFloat($("#secretRowGapSlider").value);
     applySecretRowGap();
   });
   $("#secretCloseBtn").addEventListener("click", closeSecretPanel);
-  $("#secretSaveBtn").addEventListener("click", ()=>{ saveSettings(); closeSecretPanel(); });
+  $("#secretSaveBtn").addEventListener("click", async ()=>{
+    saveSettings();
+    closeSecretPanel();
+    /* نشر تصميم الشاشة السرية للجميع عبر config.json إن توفّر مفتاح
+       النشر (المشرف فقط)؛ غير المشرف يُحفظ عنده محلياً فقط */
+    const res = await publishSecretDesign();
+    if(res.published) toast("تم الحفظ والنشر ✓ سيصل للجميع خلال دقيقة");
+    else if(res.reason === "no-token") toast("تم الحفظ على هذا الجهاز");
+    else toast("تم الحفظ محلياً — تعذّر النشر للجميع");
+  });
 
   /* سحب الشاشة السرية بحرية على الشاشة */
   (function(){
@@ -2506,6 +2623,30 @@ document.addEventListener("DOMContentLoaded", ()=>{
     });
     handle.addEventListener("pointerup", ()=>{ dragging=false; });
     handle.addEventListener("pointercancel", ()=>{ dragging=false; });
+  })();
+
+  /* تحريك إطار التطبيق نفسه بالسحب في شاشة المعاينة (أجهزة الماوس/سطح
+     المكتب فقط، حيث يظهر الإطار الطولي محاطاً بفراغ). لا يعمل على الهاتف
+     اللمسي (pointer خشن) فيبقى ملء الشاشة كما هو دون أي تأثير على اللمس.
+     يبدأ السحب فقط من خلفية الإطار الفارغة لا من أي مفتاح أو عنصر. */
+  (function(){
+    if(!window.matchMedia || !matchMedia("(pointer:fine)").matches) return;
+    const app = $("#app");
+    let dragging=false, moved=false, sx=0, sy=0, ox=0, oy=0, curX=0, curY=0;
+    const isBg = t => t === app || t.classList.contains("screen") || (t.closest && t.closest("svg.mihrab"));
+    app.addEventListener("pointerdown", e=>{
+      if(e.button !== 0 || !isBg(e.target)) return;
+      dragging=true; moved=false; sx=e.clientX; sy=e.clientY; ox=curX; oy=curY;
+    });
+    window.addEventListener("pointermove", e=>{
+      if(!dragging) return;
+      curX = ox + (e.clientX - sx);
+      curY = oy + (e.clientY - sy);
+      if(Math.abs(e.clientX-sx) > 3 || Math.abs(e.clientY-sy) > 3) moved=true;
+      app.style.transform = "translate("+curX+"px,"+curY+"px)";
+    });
+    window.addEventListener("pointerup", ()=>{ dragging=false; });
+    window.addEventListener("pointercancel", ()=>{ dragging=false; });
   })();
 
   /* ---- نظام الخلفيات (Themes) ----
@@ -3038,6 +3179,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   refreshKeyToneToggleUI();
   applyUiOverrides();
   applySlideGroupOffset();
+  applySecretPanelWidth();
   updateAll(".version-label", el=>el.textContent = "الإصدار " + APP_VERSION);
   refreshBellUI();
   refreshFmtUI();
