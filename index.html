@@ -626,9 +626,17 @@
   input.blue-range{accent-color:#4fc3f7;}
   input.red-range{accent-color:#ff5c5c;}
   .secret-list{flex:1 1 auto;overflow-y:auto;padding:0 4cqw;}
-  .secret-item{padding:1.2cqh 0;border-bottom:1px solid rgba(255,255,255,.08);transition:margin .35s ease,padding .35s ease;}
-  .secret-item .name{color:var(--gold-strong);font-size:3.4cqw;font-weight:900;margin-bottom:.4cqh;}
-  .secret-item .ctrl-line{display:flex;align-items:center;gap:2cqw;margin-top:.3cqh;}
+  /* --secret-gap-scale: نسبة مئوية عن التباعد الافتراضي (1 = 100%)،
+     تُطبَّق على كل الأسطر: بين الأقسام وداخل كل قسم على حدّ سواء،
+     بلا أي تمدد للنصوص — إزاحة مواضع فقط */
+  #secretPanel{--secret-gap-scale:1;}
+  .secret-item{
+    padding-top:calc(1.2cqh * var(--secret-gap-scale));
+    padding-bottom:calc(1.2cqh * var(--secret-gap-scale));
+    border-bottom:1px solid rgba(255,255,255,.08);
+  }
+  .secret-item .name{color:var(--gold-strong);font-size:3.4cqw;font-weight:900;margin-bottom:calc(.4cqh * var(--secret-gap-scale));}
+  .secret-item .ctrl-line{display:flex;align-items:center;gap:2cqw;margin-top:calc(.3cqh * var(--secret-gap-scale));}
   .secret-item .ctrl-line span{color:var(--white);font-size:2.7cqw;width:16cqw;flex-shrink:0;}
   .secret-item input[type=range]{flex:1;}
   .secret-save{
@@ -917,7 +925,7 @@
     </div>
     <div class="secret-row">
       <label class="red-label">المسافة بين مفاتيح الشاشة السرية نفسها</label>
-      <input type="range" class="red-range" id="secretRowGapSlider" min="-2" max="10" value="0">
+      <input type="range" class="red-range" id="secretRowGapSlider" min="-50" max="100" value="0">
     </div>
     <div class="secret-list" id="secretList"></div>
     <button class="secret-save" id="secretSaveBtn">💾 حفظ وإغلاق</button>
@@ -1062,7 +1070,7 @@ const SOUNDS = [
 ];
 
 /* رقم إصدار التطبيق — يُرقَّى يدوياً بواحد عند كل تحديث جديد يُنشر */
-const APP_VERSION = "10";
+const APP_VERSION = "11";
 
 /* ألوان ساعة العد التنازلي — تتبدّل بالضغط عليها */
 const COUNTDOWN_COLORS = [
@@ -2166,12 +2174,11 @@ function applySlideGroupOffset(){
   const el = $("#settingsScroll");
   if(el) el.style.transform = settings.slideGroupOffsetY ? "translateY("+settings.slideGroupOffsetY+"cqh)" : "";
 }
-/* مسافة إضافية بين مفاتيح الشاشة السرية نفسها، بحركة ناعمة بطيئة
-   (transition على .secret-item معرّف في CSS) */
+/* نسبة مئوية تغيّر التباعد بين كل الأسطر في الشاشة السرية — بين
+   الأقسام وداخل كل قسم على حدّ سواء (بلا تمدد للنصوص، إزاحة فقط)،
+   بنفس فورية استجابة بقية المفاتيح */
 function applySecretRowGap(){
-  document.querySelectorAll(".secret-item").forEach(it=>{
-    it.style.marginBottom = settings.secretRowGap ? settings.secretRowGap+"cqh" : "";
-  });
+  $("#secretPanel").style.setProperty("--secret-gap-scale", 1 + settings.secretRowGap/100);
 }
 function openSecretPanel(){
   buildSecretPanelUI();
