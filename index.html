@@ -422,13 +422,22 @@
   /* شاشة الضبط: رأس ثابت + قسم متمرّر + تذييل ثابت (النص المتحرك وزر
      الحفظ)، والخلفية (الثيم) خارج هذا التركيب فتبقى ثابتة دائماً */
   #settingsScreen{padding-bottom:calc(.4cqh + env(safe-area-inset-bottom,0px));}
-  #settingsScreen .topbar{flex-shrink:0;}
+  /* الشريط العلوي في شاشة الضبط يطفو فوق المحتوى (absolute) بدل احتلال
+     مساحة رأسية، حتى يبدأ الحد الأعلى لماسك القسم المتحرك من أعلى شاشة
+     الهاتف تماماً؛ ومسافة علوية داخل القسم تُبقي المحتوى أسفل الشريط */
+  #settingsScreen .topbar{
+    position:absolute;top:calc(.4cqh + env(safe-area-inset-top,0px));
+    left:4cqw;right:4cqw;width:auto;margin:0;z-index:6;
+  }
   .settings-scroll{
     flex:1 1 auto;min-height:0;width:100%;overflow-y:auto;overflow-x:hidden;
     -webkit-overflow-scrolling:touch;overscroll-behavior:contain;
     touch-action:pan-y;
     display:flex;flex-direction:column;align-items:center;
     scrollbar-width:none;
+    /* مسافة داخلية أعلى القسم بارتفاع الشريط الطافي — تُبقي المحتوى
+       أسفله في وضع السكون، بينما يبقى القصّ (الماسك) عند أعلى الشاشة */
+    padding-top:6.5cqh;
   }
   .settings-scroll::-webkit-scrollbar{display:none;}
   .settings-fixed-bottom{flex-shrink:0;width:100%;}
@@ -1101,7 +1110,7 @@ const SOUNDS = [
 ];
 
 /* رقم إصدار التطبيق — يُرقَّى يدوياً بواحد عند كل تحديث جديد يُنشر */
-const APP_VERSION = "14";
+const APP_VERSION = "15";
 
 /* ألوان ساعة العد التنازلي — تتبدّل بالضغط عليها */
 const COUNTDOWN_COLORS = [
