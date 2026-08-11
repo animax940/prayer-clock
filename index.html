@@ -310,6 +310,26 @@
   .iq-row label{color:var(--gold-strong);font-size:4.8cqw;font-weight:900;}
   .iq-row.sunrise label{color:var(--white);}
   .iq-row .num-input{width:24cqw;color:var(--white);}
+  /* اختصارات زيادة/إنقاص دقيقة — مثلثات بيضاء داخل الخانة على طرفيها،
+     العلوي (زيادة) يميناً والسفلي (إنقاص) يساراً؛ الضغط على الرقم نفسه
+     يفتح لوحة الإدخال العادية كالمعتاد */
+  .num-input-wrap{position:relative;display:inline-block;}
+  .num-input-wrap .num-input{padding-left:4.2cqw;padding-right:4.2cqw;}
+  .spin-btn{
+    position:absolute;top:50%;transform:translateY(-50%);
+    width:0;height:0;background:none;border:none;padding:0;margin:0;
+    cursor:pointer;
+  }
+  .spin-btn.spin-up{
+    right:1.1cqw;
+    border-left:1.1cqw solid transparent;border-right:1.1cqw solid transparent;
+    border-bottom:1.6cqw solid var(--white);
+  }
+  .spin-btn.spin-down{
+    left:1.1cqw;
+    border-left:1.1cqw solid transparent;border-right:1.1cqw solid transparent;
+    border-top:1.6cqw solid var(--white);
+  }
   /* المفاتيح السفلية: نفس الطول، متوسّطة، بمسافات متساوية تملأ الفراغ */
   .ctrl-stack{
     width:100%;flex:1 0 auto;           /* ينمو ليملأ الفراغ ولا ينكمش تحت محتواه */
@@ -426,7 +446,7 @@
   #settingsScreen .set-box h3{margin-bottom:.3cqh;}
   #settingsScreen .iq-row{margin:0;line-height:1;}
   #settingsScreen .iq-row label{font-size:3.7cqw;line-height:1;}
-  #settingsScreen .iq-row .num-input{padding:0;font-size:3.7cqw;line-height:1;border-width:0.3cqw;}
+  #settingsScreen .iq-row .num-input{padding-top:0;padding-bottom:0;font-size:3.7cqw;line-height:1;border-width:0.3cqw;}
   #settingsScreen .ctrl-stack{margin-top:1cqh;}
   #settingsScreen .sound-btn{
     margin:0;padding:.1cqh 0;width:100%;display:block;
@@ -741,6 +761,7 @@
 
       <button class="sound-btn" id="countdownToggle" style="width:100%;margin-top:.3cqh">🕐 إخفاء العد التنازلي</button>
       <button class="sound-btn" id="themeToggle" style="width:100%;margin-top:.3cqh">🎨 المواضيع</button>
+      <button class="sound-btn" id="keyToneToggle" style="width:100%;margin-top:.3cqh">🔈 نغمة المفاتيح</button>
     </div>
 
     <div class="settings-fixed-bottom">
@@ -1011,7 +1032,7 @@ const SOUNDS = [
 ];
 
 /* رقم إصدار التطبيق — يُرقَّى يدوياً بواحد عند كل تحديث جديد يُنشر */
-const APP_VERSION = "03";
+const APP_VERSION = "04";
 
 /* ألوان ساعة العد التنازلي — تتبدّل بالضغط عليها */
 const COUNTDOWN_COLORS = [
@@ -1030,6 +1051,7 @@ const DEFAULTS = {
   nativePushEnabled:false,   /* تنبيهات الأذان الأصلية (أندرويد فقط) */
   countdownColorIndex:2,     /* لون ساعة العد التنازلي — افتراضياً الأحمر */
   showCountdown:true,        /* إظهار/إخفاء العد التنازلي */
+  keyTonesEnabled:true,      /* نغمة قصيرة عند الضغط على أي مفتاح */
   uiOverrides:{},            /* مواضع/أحجام العناصر المخصَّصة من الشاشة السرية */
   secretPanelOpacity:95,     /* شفافية الشاشة السرية نفسها */
   lat:23.588, lng:58.408, wilaya:"مسقط",
@@ -1952,6 +1974,39 @@ function toggleCountdownVisibility(){
 }
 
 /* ============================================================
+   نغمة المفاتيح: نغمة قصيرة (قابلة للإيقاف) + اهتزاز نبضي قصير (لا
+   يتوقف مع كتم الصوت ولا مع إيقاف نغمة المفاتيح) على كل مفاتيح
+   التطبيق. زر الحفظ يحصل على 3 نبضات متتابعة مميّزة.
+   ============================================================ */
+function refreshKeyToneToggleUI(){
+  const btn = $("#keyToneToggle");
+  if(btn) btn.textContent = settings.keyTonesEnabled ? "🔈 إيقاف نغمة المفاتيح" : "🔇 تفعيل نغمة المفاتيح";
+}
+function toggleKeyTones(){
+  settings.keyTonesEnabled = !settings.keyTonesEnabled;
+  saveSettings();
+  refreshKeyToneToggleUI();
+}
+function playKeyClick(){
+  if(!settings.keyTonesEnabled) return;
+  ensureAudio();
+  if(!audioCtx) return;
+  playTone(1000, 0, .04, 0.12);
+}
+function vibrateShort(){
+  if(navigator.vibrate) navigator.vibrate(15);
+}
+function vibrateTriple(){
+  if(navigator.vibrate) navigator.vibrate([15,60,15,60,15]);
+}
+document.addEventListener("click", e=>{
+  const el = e.target.closest("button, .js-bell, .js-fmt");
+  if(!el) return;
+  playKeyClick();
+  if(el.id === "saveBtn") vibrateTriple(); else vibrateShort();
+});
+
+/* ============================================================
    الشاشة السرية: محرر عام لموضع/حجم عناصر الواجهتين الرئيسية والضبط
    (بما فيها محتوى القسم المتحرك في شاشة الضبط). تُفتح بـ 10 ضغطات
    سريعة على مفتاح كتم الصوت (كل فجوة بين ضغطتين أقل من ثانية، وأول
@@ -1984,6 +2039,7 @@ const UI_ELEMENTS = [
   {id:"s-pushbtn",  sel:"#pushToggle",                  label:"زر تفعيل التنبيهات"},
   {id:"s-cdbtn",    sel:"#countdownToggle",              label:"زر إظهار/إخفاء العد التنازلي"},
   {id:"s-themebtn", sel:"#themeToggle",                  label:"زر المواضيع"},
+  {id:"s-keytonebtn", sel:"#keyToneToggle",              label:"زر نغمة المفاتيح"},
   {id:"s-ticker",   sel:"#settingsScreen .ticker",       label:"النص المتحرك (الضبط)"},
   {id:"s-savebtn",  sel:"#saveBtn",                      label:"زر الحفظ"},
 ];
@@ -2181,9 +2237,21 @@ function buildSettingsUI(){
     const row = document.createElement("div");
     row.className = "iq-row" + (p.key === "sunrise" ? " sunrise" : "");
     row.innerHTML = '<label>'+p.name+'</label>' +
-      '<input class="num-input" data-key="'+p.key+'" type="number" min="0" max="90" inputmode="numeric" value="'+settings.iqamah[p.key]+'">';
+      '<div class="num-input-wrap">' +
+        '<button type="button" class="spin-btn spin-up" data-key="'+p.key+'" aria-label="زيادة دقيقة"></button>' +
+        '<input class="num-input" data-key="'+p.key+'" type="number" min="0" max="90" inputmode="numeric" value="'+settings.iqamah[p.key]+'">' +
+        '<button type="button" class="spin-btn spin-down" data-key="'+p.key+'" aria-label="إنقاص دقيقة"></button>' +
+      '</div>';
     list.appendChild(row);
   }
+  list.querySelectorAll(".spin-btn").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const inp = list.querySelector('.num-input[data-key="'+btn.dataset.key+'"]');
+      let v = parseInt(inp.value, 10); if(isNaN(v)) v = 0;
+      v += btn.classList.contains("spin-up") ? 1 : -1;
+      inp.value = Math.max(0, Math.min(90, v));
+    });
+  });
   const hj = hijriParts(new Date());
   $("#hijriDayInput").value = hj.day;
   $("#hijriMonthInput").value = hj.month;
@@ -2290,6 +2358,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   $("#settingsScroll").addEventListener("scroll", updateScrollArrows);
   $("#countdownToggle").addEventListener("click", toggleCountdownVisibility);
   $("#themeToggle").addEventListener("click", openThemePick);
+  $("#keyToneToggle").addEventListener("click", toggleKeyTones);
 
   attachMagnet($("#secretOpacitySlider"), 95, 1);
   $("#secretOpacitySlider").addEventListener("input", ()=>{
@@ -2847,6 +2916,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   applyCountdownColor();
   applyCountdownVisibility();
   refreshCountdownToggleUI();
+  refreshKeyToneToggleUI();
   applyUiOverrides();
   updateAll(".version-label", el=>el.textContent = "الإصدار " + APP_VERSION);
   refreshBellUI();
