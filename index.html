@@ -129,7 +129,14 @@
   .dir-label{
     color:var(--btn-fg,var(--gold-strong));font-size:2.5cqw;font-weight:900;
     text-shadow:0 0.2cqh 0.5cqh rgba(0,0,0,.65);
+    transition:color .3s ease;
   }
+  /* عند محاذاة البوصلة لاتجاه القبلة (± 5 درجات) */
+  .dir-label.qibla-aligned{
+    color:#35d46a;
+    animation:qiblaPulse 0.9s ease-in-out infinite;
+  }
+  @keyframes qiblaPulse{0%,100%{transform:scale(1);opacity:1;}50%{transform:scale(1.18);opacity:.8;}}
   .dir-widget canvas{
     width:100%;height:auto;display:block;
     filter:drop-shadow(0 0.3cqh 0.7cqh rgba(0,0,0,.5));
@@ -1035,7 +1042,7 @@ const SOUNDS = [
 ];
 
 /* رقم إصدار التطبيق — يُرقَّى يدوياً بواحد عند كل تحديث جديد يُنشر */
-const APP_VERSION = "05";
+const APP_VERSION = "06";
 
 /* ألوان ساعة العد التنازلي — تتبدّل بالضغط عليها */
 const COUNTDOWN_COLORS = [
@@ -1457,9 +1464,11 @@ function drawQibla(){
   ctx.fillText("N", 0, -R + n*0.13);
   ctx.restore();
 
-  /* سهم القبلة الأحمر */
+  /* سهم القبلة — يتحول إلى أخضر مضيء عند محاذاة البوصلة لاتجاه القبلة
+     (ضمن ± 5 درجات، حتى لا يكون التغيّر لحظياً)، وإلا يبقى أحمر */
   const qibla = qiblaBearing(settings.lat, settings.lng);
   const angle = deviceHeading == null ? qibla : (qibla - deviceHeading + 360) % 360;
+  const aligned = deviceHeading != null && (angle <= 5 || angle >= 355);
   ctx.save();
   ctx.translate(n/2, n/2);
   ctx.rotate(rad(angle));
@@ -1470,10 +1479,18 @@ function drawQibla(){
   ctx.lineTo(0, len*0.18);
   ctx.lineTo(-n*0.07, len*0.32);
   ctx.closePath();
-  ctx.fillStyle = "#e5352c";
-  ctx.shadowColor = "rgba(229,53,44,.7)"; ctx.shadowBlur = 6;
+  if(aligned){
+    ctx.fillStyle = "#35d46a";
+    ctx.shadowColor = "rgba(53,212,106,.9)"; ctx.shadowBlur = 12;
+  }else{
+    ctx.fillStyle = "#e5352c";
+    ctx.shadowColor = "rgba(229,53,44,.7)"; ctx.shadowBlur = 6;
+  }
   ctx.fill();
   ctx.restore();
+
+  const qiblaLabel = $("#qiblaWidget .dir-label");
+  if(qiblaLabel) qiblaLabel.classList.toggle("qibla-aligned", aligned);
 
   /* مركز البوصلة */
   ctx.beginPath();
