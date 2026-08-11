@@ -1976,7 +1976,10 @@ function buildSecretPanelUI(){
       '<div class="ctrl-line"><span>الطول</span><input type="range" min="50" max="200" value="'+Math.round(o.sy*100)+'" data-id="'+u.id+'" data-k="sy"></div>';
     list.appendChild(item);
   }
+  const magnetDefault = {x:0, y:0, sx:100, sy:100};
+  const magnetThreshold = {x:2, y:2, sx:3, sy:3};
   list.querySelectorAll("input[type=range]").forEach(inp=>{
+    attachMagnet(inp, magnetDefault[inp.dataset.k], magnetThreshold[inp.dataset.k]);
     inp.addEventListener("input", ()=>{
       const o = ovOf(inp.dataset.id);
       const v = parseFloat(inp.value);
@@ -1984,6 +1987,22 @@ function buildSecretPanelUI(){
       applyUiOverrides();
     });
   });
+}
+/* مغناطيس بسيط: يجذب المؤشر لموضعه الافتراضي عند الاقتراب منه، مع نقرة
+   صوتية تُصدَر مرة واحدة فقط عند كل التصاق، حتى يسهل الرجوع للحالة
+   الافتراضية دون الحاجة لضبط دقيق يدوي */
+function attachMagnet(inp, defaultVal, threshold){
+  let snapped = false;
+  inp.addEventListener("input", ()=>{
+    const v = parseFloat(inp.value);
+    const near = Math.abs(v - defaultVal) <= threshold;
+    if(near){
+      if(inp.value != defaultVal) inp.value = defaultVal;
+      if(!snapped){ playScrollClick(); snapped = true; }
+    }else{
+      snapped = false;
+    }
+  }, {capture:true});   /* قبل معالج الـ input الرئيسي حتى يقرأ القيمة الملتصقة */
 }
 function applySecretPanelOpacity(){
   $("#secretPanel").style.background = "rgba(10,10,14,"+(settings.secretPanelOpacity/100)+")";
@@ -2224,6 +2243,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   $("#countdownToggle").addEventListener("click", toggleCountdownVisibility);
   $("#themeToggle").addEventListener("click", openThemePick);
 
+  attachMagnet($("#secretOpacitySlider"), 95, 3);
   $("#secretOpacitySlider").addEventListener("input", ()=>{
     settings.secretPanelOpacity = parseInt($("#secretOpacitySlider").value,10);
     applySecretPanelOpacity();
