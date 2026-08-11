@@ -320,7 +320,8 @@
   .iq-row{display:flex;align-items:center;justify-content:space-between;margin:.5cqh 0;}
   .iq-row label{color:var(--gold-strong);font-size:4.8cqw;font-weight:900;}
   .iq-row.sunrise label{color:var(--white);}
-  .iq-row label{user-select:none;}
+  .iq-row label{cursor:pointer;user-select:none;transition:color .25s ease;}
+  #iqamahList .iq-row label.editing{color:var(--green)!important;}
   .iq-row .num-input{width:24cqw;color:var(--white);}
   /* اختصارات زيادة/إنقاص دقيقة — مثلثات بيضاء داخل الخانة على طرفيها،
      العلوي (زيادة) يميناً والسفلي (إنقاص) يساراً؛ الضغط على الرقم نفسه
@@ -636,6 +637,11 @@
   }
   .secret-item .name{color:var(--gold-strong);font-size:3.4cqw;font-weight:900;margin-bottom:calc(.4cqh * var(--secret-gap-scale));}
   .secret-item .ctrl-line{display:flex;align-items:center;gap:2cqw;margin-top:calc(.3cqh * var(--secret-gap-scale));}
+  .secret-section{
+    color:#4fc3f7;font-size:3cqw;font-weight:900;text-align:center;
+    padding-top:calc(1.4cqh * var(--secret-gap-scale));
+    padding-bottom:calc(.4cqh * var(--secret-gap-scale));
+  }
   .secret-item .ctrl-line span{color:var(--white);font-size:2.7cqw;width:16cqw;flex-shrink:0;}
   .secret-item input[type=range]{flex:1;}
   .secret-save{
@@ -1069,7 +1075,7 @@ const SOUNDS = [
 ];
 
 /* رقم إصدار التطبيق — يُرقَّى يدوياً بواحد عند كل تحديث جديد يُنشر */
-const APP_VERSION = "12";
+const APP_VERSION = "13";
 
 /* ألوان ساعة العد التنازلي — تتبدّل بالضغط عليها */
 const COUNTDOWN_COLORS = [
@@ -2051,9 +2057,9 @@ document.addEventListener("click", e=>{
    ضغطة يجب أن يكون الصوت غير مكتوم وقتها).
    ============================================================ */
 const UI_ELEMENTS = [
-  {id:"m-topbar",   sel:"#mainScreen .topbar",        label:"الشريط العلوي (الرئيسية)"},
-  {id:"m-bell",     sel:"#mainScreen .js-bell", mirror:"#settingsScreen .js-bell", label:"مفتاح كتم الصوت"},
-  {id:"m-fmt",      sel:"#mainScreen .js-fmt",  mirror:"#settingsScreen .js-fmt",  label:"مفتاح 12H/24H"},
+  {id:"m-topbar",   sel:"#mainScreen .topbar",        label:"الشريط العلوي (الرئيسية)", section:"الشاشة الرئيسية"},
+  {id:"m-bell",     sel:"#mainScreen .js-bell",         label:"مفتاح كتم الصوت (الرئيسية)"},
+  {id:"m-fmt",      sel:"#mainScreen .js-fmt",          label:"مفتاح 12H/24H (الرئيسية)"},
   {id:"m-qibla",    sel:"#qiblaWidget",                label:"بوصلة القبلة"},
   {id:"m-qiblatxt", sel:"#qiblaWidget .dir-label",     label:"كلمة القبلة"},
   {id:"m-temp",     sel:"#tempWidget",                 label:"درجة الحرارة"},
@@ -2066,7 +2072,9 @@ const UI_ELEMENTS = [
   {id:"m-cdbox",    sel:"#countdownBox",                label:"عدّاد الإقامة"},
   {id:"m-ticker",   sel:"#mainScreen .ticker",          label:"النص المتحرك (الرئيسية)"},
   {id:"m-gotobtn",  sel:"#gotoSettings",                label:"زر الضبط"},
-  {id:"s-topbar",   sel:"#settingsScreen .topbar",      label:"الشريط العلوي (الضبط)"},
+  {id:"s-topbar",   sel:"#settingsScreen .topbar",      label:"الشريط العلوي (الضبط)", section:"شاشة الضبط"},
+  {id:"s-bell",     sel:"#settingsScreen .js-bell",      label:"مفتاح كتم الصوت (الضبط)"},
+  {id:"s-fmt",      sel:"#settingsScreen .js-fmt",       label:"مفتاح 12H/24H (الضبط)"},
   {id:"s-location", sel:"#settingsScreen .location",    label:"اسم الولاية (الضبط)"},
   {id:"s-clock",    sel:"#settingsScreen .clock-wrap",  label:"الساعة (الضبط)"},
   {id:"s-hijribox", sel:"#hijriSetBox",                 label:"صندوق التاريخ الهجري"},
@@ -2126,6 +2134,12 @@ function buildSecretPanelUI(){
   const list = $("#secretList");
   list.innerHTML = "";
   for(const u of UI_ELEMENTS){
+    if(u.section){
+      const head = document.createElement("div");
+      head.className = "secret-section";
+      head.textContent = "── " + u.section + " ──";
+      list.appendChild(head);
+    }
     const o = ovOf(u.id);
     const item = document.createElement("div");
     item.className = "secret-item";
@@ -2145,7 +2159,14 @@ function buildSecretPanelUI(){
       const o = ovOf(inp.dataset.id);
       const v = parseFloat(inp.value);
       o[inp.dataset.k] = (inp.dataset.k==="sx"||inp.dataset.k==="sy") ? v/100 : v;
+      /* تطبيق transform على عنصر قرب أسفل الشاشة المتحركة قد يوسّع
+         مساحتها القابلة للتمرير فيحرّك scrollTop تلقائياً — نُعيده
+         لموضعه فوراً حتى لا تنزلق الشاشة من تلقاء نفسها أثناء الضبط،
+         مع إبقاء السحب اليدوي حراً بلا أي تجميد */
+      const scroll = $("#settingsScroll");
+      const st = scroll ? scroll.scrollTop : null;
       applyUiOverrides();
+      if(scroll && st != null) scroll.scrollTop = st;
     });
   });
 }
@@ -2187,16 +2208,10 @@ function openSecretPanel(){
   $("#secretRowGapSlider").value = settings.secretRowGap;
   applySecretRowGap();
   $("#secretPanel").classList.remove("hidden");
-  /* تجميد تمرير شاشة الضبط المتحركة أثناء الضبط من الشاشة السرية —
-     كانت تنزلق قليلاً من تلقاء نفسها عند تحريك عناصر قرب أسفلها */
-  const scroll = $("#settingsScroll");
-  if(scroll) scroll.style.overflowY = "hidden";
   if(navigator.vibrate) navigator.vibrate([40,30,40,30,80]);
 }
 function closeSecretPanel(){
   $("#secretPanel").classList.add("hidden");
-  const scroll = $("#settingsScroll");
-  if(scroll) scroll.style.overflowY = "";
 }
 
 /* كشف إيماءة "10 ضغطات سريعة" على مفتاح كتم الصوت */
@@ -2321,8 +2336,23 @@ function buildSettingsUI(){
       '</div>';
     list.appendChild(row);
   }
-  /* لا تعديل باللمس إطلاقاً على الخانة السوداء ولا على اسم الصلاة —
-     الضبط فقط عبر أسهم الزيادة/الإنقاص */
+  /* الضغط على اسم الصلاة (لا الخانة السوداء) هو ما يفتح التعديل
+     بالكيبورد — يُلغى القفل مؤقتاً، تُلوَّن الكلمة أخضر، واهتزاز نبضي */
+  list.querySelectorAll(".iq-label").forEach(lbl=>{
+    lbl.addEventListener("click", ()=>{
+      const inp = list.querySelector('.num-input[data-key="'+lbl.dataset.key+'"]');
+      inp.removeAttribute("readonly");
+      inp.focus();
+      inp.select();
+      lbl.classList.add("editing");
+      vibrateShort();
+      inp.addEventListener("blur", function onBlur(){
+        inp.setAttribute("readonly","");
+        lbl.classList.remove("editing");
+        inp.removeEventListener("blur", onBlur);
+      });
+    });
+  });
   list.querySelectorAll(".spin-btn").forEach(btn=>{
     btn.addEventListener("click", ()=>{
       const inp = list.querySelector('.num-input[data-key="'+btn.dataset.key+'"]');
