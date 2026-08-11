@@ -279,6 +279,13 @@
     font-family:inherit;
   }
   .bottom-btn:active{transform:scale(.95);}
+  /* صف الزر السفلي + رقم الإصدار على يساره */
+  .btn-row{width:100%;flex-shrink:0;position:relative;display:flex;align-items:center;justify-content:center;}
+  .version-label{
+    position:absolute;left:2cqw;top:50%;transform:translateY(-50%);
+    font-size:2.6cqw;font-weight:700;color:var(--white);opacity:.6;
+    white-space:nowrap;pointer-events:none;
+  }
 
   /* ====== شاشة الضبط ====== */
   .set-box{
@@ -646,7 +653,10 @@
 
     <div class="ticker"><div class="ticker-inner" id="tickerMain">سبحان الله والحمدلله ولا اله الا الله والله اكبر ولا حول ولاقوة الا بالله</div></div>
 
-    <button class="bottom-btn" id="gotoSettings">⚙️ الضبط</button>
+    <div class="btn-row">
+      <span class="version-label"></span>
+      <button class="bottom-btn" id="gotoSettings">⚙️ الضبط</button>
+    </div>
   </div>
 
   <!-- ============ شاشة الضبط ============ -->
@@ -712,7 +722,10 @@
 
     <div class="settings-fixed-bottom">
       <div class="ticker"><div class="ticker-inner" id="tickerSettings">تصميم أحمد السعيدي, اللهم اغفر لي ولوالدي ولمن استخدم هذا التطبيق ودعا لنا بالخير ولجميع المسلمين</div></div>
-      <button class="bottom-btn" id="saveBtn">💾 حفظ</button>
+      <div class="btn-row">
+        <span class="version-label"></span>
+        <button class="bottom-btn" id="saveBtn">💾 حفظ</button>
+      </div>
     </div>
   </div>
 
@@ -973,6 +986,9 @@ const SOUNDS = [
   {name:"الصوت الثاني", file:"sounds/adhan2.mp3"},
   {name:"الصوت الثالث", file:"sounds/adhan3.mp3"}
 ];
+
+/* رقم إصدار التطبيق — يُرقَّى يدوياً بواحد عند كل تحديث جديد يُنشر */
+const APP_VERSION = "01";
 
 /* ألوان ساعة العد التنازلي — تتبدّل بالضغط عليها */
 const COUNTDOWN_COLORS = [
@@ -2809,6 +2825,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   applyCountdownVisibility();
   refreshCountdownToggleUI();
   applyUiOverrides();
+  updateAll(".version-label", el=>el.textContent = "الإصدار " + APP_VERSION);
   refreshBellUI();
   refreshFmtUI();
   refreshTimes();
