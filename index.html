@@ -406,8 +406,9 @@
   #settingsScreen{padding-bottom:calc(.4cqh + env(safe-area-inset-bottom,0px));}
   #settingsScreen .topbar{flex-shrink:0;}
   .settings-scroll{
-    flex:1 1 auto;min-height:0;width:100%;overflow-y:auto;
+    flex:1 1 auto;min-height:0;width:100%;overflow-y:auto;overflow-x:hidden;
     -webkit-overflow-scrolling:touch;overscroll-behavior:contain;
+    touch-action:pan-y;
     display:flex;flex-direction:column;align-items:center;
     scrollbar-width:none;
   }
@@ -1042,7 +1043,7 @@ const SOUNDS = [
 ];
 
 /* رقم إصدار التطبيق — يُرقَّى يدوياً بواحد عند كل تحديث جديد يُنشر */
-const APP_VERSION = "06";
+const APP_VERSION = "07";
 
 /* ألوان ساعة العد التنازلي — تتبدّل بالضغط عليها */
 const COUNTDOWN_COLORS = [
