@@ -306,9 +306,12 @@
   .num-input::-webkit-outer-spin-button,.num-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
   .num-input{-moz-appearance:textfield;appearance:textfield;}
   .num-input:focus{outline:none;border-color:var(--gold-strong);box-shadow:0 0 1.2cqw rgba(246,221,149,.7);}
+  #iqamahList{display:flex;flex-direction:column;justify-content:space-evenly;height:100%;}
   .iq-row{display:flex;align-items:center;justify-content:space-between;margin:.5cqh 0;}
   .iq-row label{color:var(--gold-strong);font-size:4.8cqw;font-weight:900;}
   .iq-row.sunrise label{color:var(--white);}
+  .iq-row label{cursor:pointer;user-select:none;transition:color .25s ease;}
+  #iqamahList .iq-row label.editing{color:var(--green)!important;}
   .iq-row .num-input{width:24cqw;color:var(--white);}
   /* اختصارات زيادة/إنقاص دقيقة — مثلثات بيضاء داخل الخانة على طرفيها،
      العلوي (زيادة) يميناً والسفلي (إنقاص) يساراً؛ الضغط على الرقم نفسه
@@ -427,12 +430,12 @@
     border-top:2.2cqw solid var(--gold-strong);
   }
   .scroll-arrow.show .tri{animation:triFlow 1.2s ease-in-out infinite;}
-  .scroll-arrow.down.show .tri:nth-child(1){animation-delay:0s;}
+  .scroll-arrow.down.show .tri:nth-child(1){animation-delay:.3s;}
   .scroll-arrow.down.show .tri:nth-child(2){animation-delay:.15s;}
-  .scroll-arrow.down.show .tri:nth-child(3){animation-delay:.3s;}
-  .scroll-arrow.up.show .tri:nth-child(1){animation-delay:.3s;}
+  .scroll-arrow.down.show .tri:nth-child(3){animation-delay:0s;}
+  .scroll-arrow.up.show .tri:nth-child(1){animation-delay:0s;}
   .scroll-arrow.up.show .tri:nth-child(2){animation-delay:.15s;}
-  .scroll-arrow.up.show .tri:nth-child(3){animation-delay:0s;}
+  .scroll-arrow.up.show .tri:nth-child(3){animation-delay:.3s;}
   @keyframes triFlow{0%,45%,100%{opacity:.2;}20%{opacity:1;}}
 
   /* ضغط عناصر شاشة الضبط لتتسع داخل الإطار */
@@ -1032,7 +1035,7 @@ const SOUNDS = [
 ];
 
 /* رقم إصدار التطبيق — يُرقَّى يدوياً بواحد عند كل تحديث جديد يُنشر */
-const APP_VERSION = "04";
+const APP_VERSION = "05";
 
 /* ألوان ساعة العد التنازلي — تتبدّل بالضغط عليها */
 const COUNTDOWN_COLORS = [
@@ -2236,14 +2239,31 @@ function buildSettingsUI(){
     if(!p.hasIqamah && p.key !== "sunrise") continue;
     const row = document.createElement("div");
     row.className = "iq-row" + (p.key === "sunrise" ? " sunrise" : "");
-    row.innerHTML = '<label>'+p.name+'</label>' +
+    row.innerHTML = '<label class="iq-label" data-key="'+p.key+'">'+p.name+'</label>' +
       '<div class="num-input-wrap">' +
         '<button type="button" class="spin-btn spin-up" data-key="'+p.key+'" aria-label="زيادة دقيقة"></button>' +
-        '<input class="num-input" data-key="'+p.key+'" type="number" min="0" max="90" inputmode="numeric" value="'+settings.iqamah[p.key]+'">' +
+        '<input class="num-input" data-key="'+p.key+'" type="number" min="0" max="90" inputmode="numeric" value="'+settings.iqamah[p.key]+'" readonly>' +
         '<button type="button" class="spin-btn spin-down" data-key="'+p.key+'" aria-label="إنقاص دقيقة"></button>' +
       '</div>';
     list.appendChild(row);
   }
+  /* الضغط على اسم الصلاة (لا الخانة السوداء) هو ما يفتح التعديل
+     بالكيبورد — يُلغى القفل مؤقتاً، تُلوَّن الكلمة أخضر، واهتزاز نبضي */
+  list.querySelectorAll(".iq-label").forEach(lbl=>{
+    lbl.addEventListener("click", ()=>{
+      const inp = list.querySelector('.num-input[data-key="'+lbl.dataset.key+'"]');
+      inp.removeAttribute("readonly");
+      inp.focus();
+      inp.select();
+      lbl.classList.add("editing");
+      vibrateShort();
+      inp.addEventListener("blur", function onBlur(){
+        inp.setAttribute("readonly","");
+        lbl.classList.remove("editing");
+        inp.removeEventListener("blur", onBlur);
+      });
+    });
+  });
   list.querySelectorAll(".spin-btn").forEach(btn=>{
     btn.addEventListener("click", ()=>{
       const inp = list.querySelector('.num-input[data-key="'+btn.dataset.key+'"]');
