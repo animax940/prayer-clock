@@ -301,6 +301,7 @@
   .num-input:focus{outline:none;border-color:var(--gold-strong);box-shadow:0 0 1.2cqw rgba(246,221,149,.7);}
   .iq-row{display:flex;align-items:center;justify-content:space-between;margin:.5cqh 0;}
   .iq-row label{color:var(--gold-strong);font-size:4.8cqw;font-weight:900;}
+  .iq-row.sunrise label{color:var(--white);}
   .iq-row .num-input{width:24cqw;color:var(--white);}
   /* المفاتيح السفلية: نفس الطول، متوسّطة، بمسافات متساوية تملأ الفراغ */
   .ctrl-stack{
@@ -362,6 +363,31 @@
   }
   #mainScreen .countdown-box{margin-top:0.85cqh;}
   #mainScreen .ticker{margin-top:1.3cqh;}
+
+  /* شاشة الضبط: رأس ثابت + قسم متمرّر + تذييل ثابت (النص المتحرك وزر
+     الحفظ)، والخلفية (الثيم) خارج هذا التركيب فتبقى ثابتة دائماً */
+  #settingsScreen{padding-bottom:calc(.4cqh + env(safe-area-inset-bottom,0px));}
+  #settingsScreen .topbar{flex-shrink:0;}
+  .settings-scroll{
+    flex:1 1 auto;min-height:0;width:100%;overflow-y:auto;
+    -webkit-overflow-scrolling:touch;overscroll-behavior:contain;
+    display:flex;flex-direction:column;align-items:center;
+    scrollbar-width:none;
+  }
+  .settings-scroll::-webkit-scrollbar{display:none;}
+  .settings-fixed-bottom{flex-shrink:0;width:100%;}
+  /* سهمان يومضان على جانب الشاشة يدلّان على وجود مزيد من المحتوى */
+  .scroll-arrow{
+    position:absolute;left:1.5cqw;z-index:5;
+    font-size:4cqw;color:var(--gold-strong);
+    opacity:0;pointer-events:none;
+    text-shadow:0 0 1cqw rgba(246,221,149,.6);
+    transition:opacity .25s ease;
+  }
+  .scroll-arrow.show{opacity:1;animation:arrowBlink 1.1s ease-in-out infinite;}
+  .scroll-arrow.up{top:9cqh;}
+  .scroll-arrow.down{bottom:19cqh;}
+  @keyframes arrowBlink{0%,100%{opacity:.25;}50%{opacity:1;}}
 
   /* ضغط عناصر شاشة الضبط لتتسع داخل الإطار */
   #settingsScreen .topbar{min-height:8.5cqh;}
@@ -502,6 +528,44 @@
     opacity:0;transition:all .3s ease;z-index:40;pointer-events:none;white-space:nowrap;
   }
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  /* الشاشة السرية — محرر مواضع/أحجام العناصر */
+  .secret-panel{
+    position:fixed;top:8%;left:5%;width:90%;height:80%;z-index:200;
+    background:rgba(10,10,14,.95);border:0.6cqw solid var(--gold);border-radius:4cqw;
+    box-shadow:0 0 4cqw rgba(0,0,0,.7);
+    display:flex;flex-direction:column;overflow:hidden;
+    direction:rtl;
+  }
+  .secret-panel.hidden{display:none;}
+  .secret-head{
+    flex-shrink:0;display:flex;align-items:center;justify-content:space-between;
+    padding:1.5cqh 4cqw;background:rgba(238,203,122,.12);
+    color:var(--gold-strong);font-weight:900;font-size:4cqw;
+    cursor:grab;touch-action:none;user-select:none;
+    border-bottom:1px solid rgba(238,203,122,.3);
+  }
+  .secret-close{
+    background:none;border:none;color:var(--gold-strong);font-size:5cqw;
+    cursor:pointer;line-height:1;
+  }
+  .secret-row{
+    flex-shrink:0;padding:1cqh 4cqw;border-bottom:1px solid rgba(255,255,255,.08);
+    display:flex;flex-direction:column;gap:.4cqh;
+  }
+  .secret-row label{color:var(--white);font-size:3.2cqw;font-weight:700;}
+  .secret-list{flex:1 1 auto;overflow-y:auto;padding:0 4cqw;}
+  .secret-item{padding:1.2cqh 0;border-bottom:1px solid rgba(255,255,255,.08);}
+  .secret-item .name{color:var(--gold-strong);font-size:3.4cqw;font-weight:900;margin-bottom:.4cqh;}
+  .secret-item .ctrl-line{display:flex;align-items:center;gap:2cqw;margin-top:.3cqh;}
+  .secret-item .ctrl-line span{color:var(--white);font-size:2.7cqw;width:16cqw;flex-shrink:0;}
+  .secret-item input[type=range]{flex:1;}
+  .secret-save{
+    flex-shrink:0;margin:1.5cqh 4cqw;padding:1.2cqh 0;
+    background:linear-gradient(180deg,#241007,#0d0402);color:var(--gold-strong);
+    border:0.5cqw solid var(--gold-dim);border-radius:3cqw;font-weight:900;font-size:3.6cqw;
+    cursor:pointer;
+  }
 </style>
 </head>
 <body>
@@ -595,52 +659,61 @@
       </div>
     </div>
 
-    <div class="location"><span class="js-wilaya">مسقط</span></div>
+    <div class="scroll-arrow up" id="scrollArrowUp">▲</div>
+    <div class="scroll-arrow down" id="scrollArrowDown">▼</div>
 
-    <div class="clock-wrap">
-      <div class="clock js-clock">--:--<span class="sec">:--</span></div>
-      <div class="ampm-live js-ampm-live">AM</div>
-    </div>
+    <div class="settings-scroll" id="settingsScroll">
+      <div class="location"><span class="js-wilaya">مسقط</span></div>
 
-    <div class="set-box">
-      <h3>ضبط التاريخ الهجري</h3>
-      <div class="hijri-line">
-        <span>اليوم</span>
-        <input class="num-input" id="hijriDayInput" type="number" min="1" max="30" inputmode="numeric">
-        <span style="width:4cqw"></span>
-        <input class="num-input" id="hijriMonthInput" type="number" min="1" max="12" inputmode="numeric">
-        <span>الشهر</span>
+      <div class="clock-wrap">
+        <div class="clock js-clock">--:--<span class="sec">:--</span></div>
+        <div class="ampm-live js-ampm-live">AM</div>
       </div>
-    </div>
 
-    <div class="set-box">
-      <h3 class="gold">الإقامة</h3>
-      <div id="iqamahList"></div>
-    </div>
-
-    <div class="ctrl-stack">
-      <div class="ctrl-row">
-        <button class="sound-btn pill-half" id="updateCalendar">🗓️ تحديث البيانات</button>
-        <button class="sound-btn pill-half" id="azkarMorningBtn">☀️ أذكار الصباح</button>
+      <div class="set-box">
+        <h3>ضبط التاريخ الهجري</h3>
+        <div class="hijri-line">
+          <span>اليوم</span>
+          <input class="num-input" id="hijriDayInput" type="number" min="1" max="30" inputmode="numeric">
+          <span style="width:4cqw"></span>
+          <input class="num-input" id="hijriMonthInput" type="number" min="1" max="12" inputmode="numeric">
+          <span>الشهر</span>
+        </div>
       </div>
-      <div class="ctrl-row">
-        <button class="sound-btn pill-half" id="soundBtn">🔊 الصوت الاول</button>
-        <button class="sound-btn pill-half" id="azkarEveningBtn">🌙 أذكار المساء</button>
+
+      <div class="set-box">
+        <h3 class="gold">الإقامة</h3>
+        <div id="iqamahList"></div>
       </div>
-      <div class="vol-wrap">
-        <div class="vol-pct" id="volPct">70%</div>
-        <input type="range" id="volSlider" min="0" max="100" value="70">
+
+      <div class="ctrl-stack">
+        <div class="ctrl-row">
+          <button class="sound-btn pill-half" id="updateCalendar">🗓️ تحديث البيانات</button>
+          <button class="sound-btn pill-half" id="azkarMorningBtn">☀️ أذكار الصباح</button>
+        </div>
+        <div class="ctrl-row">
+          <button class="sound-btn pill-half" id="soundBtn">🔊 الصوت الاول</button>
+          <button class="sound-btn pill-half" id="azkarEveningBtn">🌙 أذكار المساء</button>
+        </div>
+        <div class="vol-wrap">
+          <div class="vol-pct" id="volPct">70%</div>
+          <input type="range" id="volSlider" min="0" max="100" value="70">
+        </div>
       </div>
+
+      <button class="sound-btn" id="pushToggle" style="width:100%;margin-top:.3cqh">🔔 تفعيل تنبيهات الأذان</button>
+      <div style="display:flex;align-items:center;justify-content:center;gap:2cqw;margin-top:.15cqh">
+        <div id="pushHint" style="text-align:center;font-size:2.8cqw;font-weight:700;line-height:1.3;min-height:3.2cqw"></div>
+      </div>
+
+      <button class="sound-btn" id="countdownToggle" style="width:100%;margin-top:.3cqh">🕐 إخفاء العد التنازلي</button>
+      <button class="sound-btn" id="themeToggle" style="width:100%;margin-top:.3cqh">🎨 المواضيع</button>
     </div>
 
-    <button class="sound-btn" id="pushToggle" style="width:100%;margin-top:.3cqh">🔔 تفعيل تنبيهات الأذان</button>
-    <div style="display:flex;align-items:center;justify-content:center;gap:2cqw;margin-top:.15cqh">
-      <div id="pushHint" style="text-align:center;font-size:2.8cqw;font-weight:700;line-height:1.3;min-height:3.2cqw"></div>
+    <div class="settings-fixed-bottom">
+      <div class="ticker"><div class="ticker-inner" id="tickerSettings">تصميم أحمد السعيدي, اللهم اغفر لي ولوالدي ولمن استخدم هذا التطبيق ودعا لنا بالخير ولجميع المسلمين</div></div>
+      <button class="bottom-btn" id="saveBtn">💾 حفظ</button>
     </div>
-
-    <div class="ticker"><div class="ticker-inner" id="tickerSettings">تصميم أحمد السعيدي, اللهم اغفر لي ولوالدي ولمن استخدم هذا التطبيق ودعا لنا بالخير ولجميع المسلمين</div></div>
-
-    <button class="bottom-btn" id="saveBtn">💾 حفظ</button>
   </div>
 
   <!-- نافذة تحديد الموقع -->
@@ -747,6 +820,21 @@
   </div>
 
   <div class="toast" id="toast"></div>
+
+  <!-- الشاشة السرية: محرر عام لمواضع/أحجام عناصر الواجهة، تُفتح بـ 10
+       ضغطات سريعة على مفتاح كتم الصوت -->
+  <div class="secret-panel hidden" id="secretPanel">
+    <div class="secret-head" id="secretDragHandle">
+      <span>⚙️ الشاشة السرية</span>
+      <button class="secret-close" id="secretCloseBtn">✕</button>
+    </div>
+    <div class="secret-row">
+      <label>شفافية الشاشة السرية</label>
+      <input type="range" id="secretOpacitySlider" min="30" max="100" value="95">
+    </div>
+    <div class="secret-list" id="secretList"></div>
+    <button class="secret-save" id="secretSaveBtn">💾 حفظ وإغلاق</button>
+  </div>
 </div>
 
 <script src="times_data.js"></script>
@@ -894,7 +982,7 @@ const COUNTDOWN_COLORS = [
 
 /* ---------- الإعدادات المحفوظة ---------- */
 const DEFAULTS = {
-  iqamah:{fajr:20,dhuhr:15,asr:15,maghrib:10,isha:15},
+  iqamah:{fajr:20,dhuhr:15,asr:15,maghrib:10,isha:15,sunrise:20},
   hijriOffsetDays:0,
   volume:70,
   soundIndex:0,
@@ -902,6 +990,9 @@ const DEFAULTS = {
   bellOn:true,
   nativePushEnabled:false,   /* تنبيهات الأذان الأصلية (أندرويد فقط) */
   countdownColorIndex:2,     /* لون ساعة العد التنازلي — افتراضياً الأحمر */
+  showCountdown:true,        /* إظهار/إخفاء العد التنازلي */
+  uiOverrides:{},            /* مواضع/أحجام العناصر المخصَّصة من الشاشة السرية */
+  secretPanelOpacity:95,     /* شفافية الشاشة السرية نفسها */
   lat:23.588, lng:58.408, wilaya:"مسقط",
   autoLocate:true,  /* يصبح false عند اختيار الولاية يدوياً */
   theme:"classic"   /* الخلفية المختارة */
@@ -1672,9 +1763,9 @@ function renderTable(){
     name.dataset.key = p.key;
     const iq = document.createElement("div");
     iq.className = "cell iqamah"+hl;
-    /* الشروق لا إقامة له شرعاً؛ نعرض فقط وقت انتهاء الكراهة (+5 دقائق) كمعلومة */
-    iq.textContent = p.hasIqamah ? fmtMinutes(todayTimes[p.key] + settings.iqamah[p.key])
-                    : p.key === "sunrise" ? fmtMinutes(todayTimes[p.key] + 20)
+    /* الشروق لا إقامة له شرعاً؛ نعرض فقط وقت انتهاء الكراهة (فارق قابل للتعديل) كمعلومة */
+    iq.textContent = (p.hasIqamah || p.key === "sunrise")
+                    ? fmtMinutes(todayTimes[p.key] + settings.iqamah[p.key])
                     : "—";
     tbl.append(adhan,name,iq);
   }
@@ -1804,6 +1895,137 @@ function cycleCountdownColor(){
   applyCountdownColor();
 }
 
+/* إظهار/إخفاء العد التنازلي — visibility لا display، حتى لا يختل محاذاة
+   رأسَي "الأذان" و"الإقامة" على جانبيه */
+function applyCountdownVisibility(){
+  const el = $("#adhanCountdown");
+  if(el) el.style.visibility = settings.showCountdown ? "visible" : "hidden";
+}
+function refreshCountdownToggleUI(){
+  const btn = $("#countdownToggle");
+  if(btn) btn.textContent = settings.showCountdown ? "🕐 إخفاء العد التنازلي" : "🕐 إظهار العد التنازلي";
+}
+function toggleCountdownVisibility(){
+  settings.showCountdown = !settings.showCountdown;
+  saveSettings();
+  applyCountdownVisibility();
+  refreshCountdownToggleUI();
+}
+
+/* ============================================================
+   الشاشة السرية: محرر عام لموضع/حجم عناصر الواجهتين الرئيسية والضبط
+   (بما فيها محتوى القسم المتحرك في شاشة الضبط). تُفتح بـ 10 ضغطات
+   سريعة على مفتاح كتم الصوت (كل فجوة بين ضغطتين أقل من ثانية، وأول
+   ضغطة يجب أن يكون الصوت غير مكتوم وقتها).
+   ============================================================ */
+const UI_ELEMENTS = [
+  {id:"m-topbar",   sel:"#mainScreen .topbar",        label:"الشريط العلوي (الرئيسية)"},
+  {id:"m-qibla",    sel:"#qiblaWidget",                label:"بوصلة القبلة"},
+  {id:"m-temp",     sel:"#tempWidget",                 label:"درجة الحرارة"},
+  {id:"m-location", sel:"#mainScreen .location",       label:"اسم الولاية (الرئيسية)"},
+  {id:"m-clock",    sel:"#mainScreen .clock-wrap",     label:"الساعة (الرئيسية)"},
+  {id:"m-dates",    sel:"#mainScreen .dates",          label:"التواريخ (الرئيسية)"},
+  {id:"m-ptable",   sel:"#ptable",                     label:"جدول الأذان والإقامة"},
+  {id:"m-cdbox",    sel:"#countdownBox",                label:"عدّاد الإقامة"},
+  {id:"m-ticker",   sel:"#mainScreen .ticker",          label:"النص المتحرك (الرئيسية)"},
+  {id:"m-gotobtn",  sel:"#gotoSettings",                label:"زر الضبط"},
+  {id:"s-topbar",   sel:"#settingsScreen .topbar",      label:"الشريط العلوي (الضبط)"},
+  {id:"s-location", sel:"#settingsScreen .location",    label:"اسم الولاية (الضبط)"},
+  {id:"s-clock",    sel:"#settingsScreen .clock-wrap",  label:"الساعة (الضبط)"},
+  {id:"s-hijribox", sel:"#settingsScreen .set-box:nth-of-type(1)", label:"صندوق التاريخ الهجري"},
+  {id:"s-iqbox",    sel:"#settingsScreen .set-box:nth-of-type(2)", label:"صندوق الإقامة"},
+  {id:"s-ctrlrow1", sel:"#settingsScreen .ctrl-row:nth-of-type(1)", label:"صف: تحديث البيانات / أذكار الصباح"},
+  {id:"s-ctrlrow2", sel:"#settingsScreen .ctrl-row:nth-of-type(2)", label:"صف: الصوت / أذكار المساء"},
+  {id:"s-volwrap",  sel:"#settingsScreen .vol-wrap",    label:"شريط الصوت"},
+  {id:"s-pushbtn",  sel:"#pushToggle",                  label:"زر تفعيل التنبيهات"},
+  {id:"s-cdbtn",    sel:"#countdownToggle",              label:"زر إظهار/إخفاء العد التنازلي"},
+  {id:"s-themebtn", sel:"#themeToggle",                  label:"زر المواضيع"},
+  {id:"s-ticker",   sel:"#settingsScreen .ticker",       label:"النص المتحرك (الضبط)"},
+  {id:"s-savebtn",  sel:"#saveBtn",                      label:"زر الحفظ"},
+];
+
+function uiElementNode(sel){
+  try{ return document.querySelector(sel); }catch(e){ return null; }
+}
+function applyUiOverrides(){
+  for(const u of UI_ELEMENTS){
+    const el = uiElementNode(u.sel);
+    if(!el) continue;
+    const o = settings.uiOverrides[u.id];
+    if(!o){ el.style.transform = ""; continue; }
+    el.style.transform = "translate("+(o.x||0)+"cqw,"+(o.y||0)+"cqh) scale("+(o.sx||1)+","+(o.sy||1)+")";
+    el.style.transformOrigin = "center";
+  }
+}
+function ovOf(id){
+  if(!settings.uiOverrides[id]) settings.uiOverrides[id] = {x:0,y:0,sx:1,sy:1};
+  return settings.uiOverrides[id];
+}
+function buildSecretPanelUI(){
+  const list = $("#secretList");
+  list.innerHTML = "";
+  for(const u of UI_ELEMENTS){
+    const o = ovOf(u.id);
+    const item = document.createElement("div");
+    item.className = "secret-item";
+    item.innerHTML =
+      '<div class="name">'+u.label+'</div>' +
+      '<div class="ctrl-line"><span>يمين / يسار</span><input type="range" min="-40" max="40" value="'+o.x+'" data-id="'+u.id+'" data-k="x"></div>' +
+      '<div class="ctrl-line"><span>أعلى / أسفل</span><input type="range" min="-30" max="30" value="'+o.y+'" data-id="'+u.id+'" data-k="y"></div>' +
+      '<div class="ctrl-line"><span>العرض</span><input type="range" min="50" max="200" value="'+Math.round(o.sx*100)+'" data-id="'+u.id+'" data-k="sx"></div>' +
+      '<div class="ctrl-line"><span>الطول</span><input type="range" min="50" max="200" value="'+Math.round(o.sy*100)+'" data-id="'+u.id+'" data-k="sy"></div>';
+    list.appendChild(item);
+  }
+  list.querySelectorAll("input[type=range]").forEach(inp=>{
+    inp.addEventListener("input", ()=>{
+      const o = ovOf(inp.dataset.id);
+      const v = parseFloat(inp.value);
+      o[inp.dataset.k] = (inp.dataset.k==="sx"||inp.dataset.k==="sy") ? v/100 : v;
+      applyUiOverrides();
+    });
+  });
+}
+function applySecretPanelOpacity(){
+  $("#secretPanel").style.background = "rgba(10,10,14,"+(settings.secretPanelOpacity/100)+")";
+}
+function openSecretPanel(){
+  buildSecretPanelUI();
+  $("#secretOpacitySlider").value = settings.secretPanelOpacity;
+  applySecretPanelOpacity();
+  $("#secretPanel").classList.remove("hidden");
+  if(navigator.vibrate) navigator.vibrate([40,30,40,30,80]);
+}
+function closeSecretPanel(){
+  $("#secretPanel").classList.add("hidden");
+}
+
+/* كشف إيماءة "10 ضغطات سريعة" على مفتاح كتم الصوت */
+let secretTapTimes = [];
+function trackSecretGesture(){
+  const now = Date.now();
+  if(secretTapTimes.length === 0){
+    if(!settings.bellOn) return;   /* يجب أن تبدأ الإيماءة والصوت غير مكتوم */
+    secretTapTimes.push(now);
+    return;
+  }
+  const gap = now - secretTapTimes[secretTapTimes.length-1];
+  if(gap >= 1000){
+    secretTapTimes = [];
+    playGestureFailBeep();
+    return;
+  }
+  secretTapTimes.push(now);
+  if(secretTapTimes.length >= 10){
+    secretTapTimes = [];
+    openSecretPanel();
+  }
+}
+function playGestureFailBeep(){
+  ensureAudio();
+  if(!audioCtx) return;
+  playTone(320, 0, .12, 0.25);
+}
+
 /* ---------- الحلقة الرئيسية (كل ثانية) ---------- */
 let lastAlertStamp = "";
 let lastDay = new Date().getDate();
@@ -1888,9 +2110,9 @@ function buildSettingsUI(){
   const list = $("#iqamahList");
   list.innerHTML = "";
   for(const p of PRAYERS){
-    if(!p.hasIqamah) continue;
+    if(!p.hasIqamah && p.key !== "sunrise") continue;
     const row = document.createElement("div");
-    row.className = "iq-row";
+    row.className = "iq-row" + (p.key === "sunrise" ? " sunrise" : "");
     row.innerHTML = '<label>'+p.name+'</label>' +
       '<input class="num-input" data-key="'+p.key+'" type="number" min="0" max="90" inputmode="numeric" value="'+settings.iqamah[p.key]+'">';
     list.appendChild(row);
@@ -1934,7 +2156,18 @@ function showScreen(id){
   $("#mainScreen").classList.toggle("hidden", id!=="mainScreen");
   $("#settingsScreen").classList.toggle("hidden", id!=="settingsScreen");
   $("#app").classList.toggle("on-settings", id==="settingsScreen");
-  if(id==="settingsScreen") buildSettingsUI();
+  if(id==="settingsScreen"){
+    buildSettingsUI();
+    setTimeout(updateScrollArrows, 50);
+  }
+}
+/* سهما التمرير الوامضان: يظهران فقط عند وجود مزيد من المحتوى في ذلك الاتجاه */
+function updateScrollArrows(){
+  const el = $("#settingsScroll");
+  const up = $("#scrollArrowUp"), down = $("#scrollArrowDown");
+  if(!el || !up || !down) return;
+  up.classList.toggle("show", el.scrollTop > 2);
+  down.classList.toggle("show", el.scrollTop < el.scrollHeight - el.clientHeight - 2);
 }
 function refreshBellUI(){
   updateAll(".js-bell", el=>{
@@ -1956,6 +2189,9 @@ document.addEventListener("DOMContentLoaded", ()=>{
     settings.use24h = !settings.use24h; saveSettings();
     refreshFmtUI(); renderTable(); tick();
   }));
+  /* يجب تسجيلها قبل معالج الكتم/الإلغاء حتى تقرأ حالة settings.bellOn
+     كما كانت قبل هذه الضغطة بالذات (الشرط: أول ضغطة والصوت غير مكتوم) */
+  updateAll(".js-bell", el=>el.addEventListener("click", trackSecretGesture));
   updateAll(".js-bell", el=>el.addEventListener("click", ()=>{
     settings.bellOn = !settings.bellOn; saveSettings();
     if(!settings.bellOn) stopAdhan();
@@ -1969,6 +2205,37 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
   $("#qiblaWidget").addEventListener("click", startCompass);
   $("#adhanCountdown").addEventListener("click", cycleCountdownColor);
+  $("#settingsScroll").addEventListener("scroll", updateScrollArrows);
+  $("#countdownToggle").addEventListener("click", toggleCountdownVisibility);
+  $("#themeToggle").addEventListener("click", openThemePick);
+
+  $("#secretOpacitySlider").addEventListener("input", ()=>{
+    settings.secretPanelOpacity = parseInt($("#secretOpacitySlider").value,10);
+    applySecretPanelOpacity();
+  });
+  $("#secretCloseBtn").addEventListener("click", closeSecretPanel);
+  $("#secretSaveBtn").addEventListener("click", ()=>{ saveSettings(); closeSecretPanel(); });
+
+  /* سحب الشاشة السرية بحرية على الشاشة */
+  (function(){
+    const panel = $("#secretPanel"), handle = $("#secretDragHandle");
+    let dragging = false, startX=0, startY=0, baseLeft=0, baseTop=0;
+    handle.addEventListener("pointerdown", e=>{
+      dragging = true;
+      startX = e.clientX; startY = e.clientY;
+      const r = panel.getBoundingClientRect();
+      baseLeft = r.left; baseTop = r.top;
+      panel.style.left = baseLeft+"px"; panel.style.top = baseTop+"px";
+      handle.setPointerCapture(e.pointerId);
+    });
+    handle.addEventListener("pointermove", e=>{
+      if(!dragging) return;
+      panel.style.left = (baseLeft + (e.clientX-startX))+"px";
+      panel.style.top = (baseTop + (e.clientY-startY))+"px";
+    });
+    handle.addEventListener("pointerup", ()=>{ dragging=false; });
+    handle.addEventListener("pointercancel", ()=>{ dragging=false; });
+  })();
 
   /* ---- نظام الخلفيات (Themes) ----
      لكل خلفية مجموعة ألوان نصوص خاصة بها لتبقى مقروءة على الفاتح والداكن. */
@@ -2431,7 +2698,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
   $("#settingsScreen").addEventListener("click", e=>{
     if(e.target !== e.currentTarget) return;
     stopAdhan();
-    openThemePick();
   });
 
   $("#autoLoc").addEventListener("click", ()=>{
@@ -2496,6 +2762,9 @@ document.addEventListener("DOMContentLoaded", ()=>{
   updateAll(".js-wilaya", el=>el.textContent = settings.wilaya);
   applyTheme(settings.theme);
   applyCountdownColor();
+  applyCountdownVisibility();
+  refreshCountdownToggleUI();
+  applyUiOverrides();
   refreshBellUI();
   refreshFmtUI();
   refreshTimes();
