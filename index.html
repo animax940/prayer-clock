@@ -621,8 +621,12 @@
     display:flex;flex-direction:column;gap:.4cqh;
   }
   .secret-row label{color:var(--white);font-size:3.2cqw;font-weight:700;}
+  .secret-row label.blue-label{color:#4fc3f7;}
+  .secret-row label.red-label{color:#ff5c5c;}
+  input.blue-range{accent-color:#4fc3f7;}
+  input.red-range{accent-color:#ff5c5c;}
   .secret-list{flex:1 1 auto;overflow-y:auto;padding:0 4cqw;}
-  .secret-item{padding:1.2cqh 0;border-bottom:1px solid rgba(255,255,255,.08);}
+  .secret-item{padding:1.2cqh 0;border-bottom:1px solid rgba(255,255,255,.08);transition:margin .35s ease,padding .35s ease;}
   .secret-item .name{color:var(--gold-strong);font-size:3.4cqw;font-weight:900;margin-bottom:.4cqh;}
   .secret-item .ctrl-line{display:flex;align-items:center;gap:2cqw;margin-top:.3cqh;}
   .secret-item .ctrl-line span{color:var(--white);font-size:2.7cqw;width:16cqw;flex-shrink:0;}
@@ -907,6 +911,14 @@
       <label>شفافية الشاشة السرية</label>
       <input type="range" id="secretOpacitySlider" min="30" max="100" value="95">
     </div>
+    <div class="secret-row">
+      <label class="blue-label">تحريك عناصر شاشة الضبط (السلايد) للأعلى/الأسفل معاً</label>
+      <input type="range" class="blue-range" id="slideGroupSlider" min="-30" max="30" value="0">
+    </div>
+    <div class="secret-row">
+      <label class="red-label">المسافة بين مفاتيح الشاشة السرية نفسها</label>
+      <input type="range" class="red-range" id="secretRowGapSlider" min="-2" max="10" value="0">
+    </div>
     <div class="secret-list" id="secretList"></div>
     <button class="secret-save" id="secretSaveBtn">💾 حفظ وإغلاق</button>
   </div>
@@ -1050,7 +1062,7 @@ const SOUNDS = [
 ];
 
 /* رقم إصدار التطبيق — يُرقَّى يدوياً بواحد عند كل تحديث جديد يُنشر */
-const APP_VERSION = "09";
+const APP_VERSION = "10";
 
 /* ألوان ساعة العد التنازلي — تتبدّل بالضغط عليها */
 const COUNTDOWN_COLORS = [
@@ -1072,6 +1084,8 @@ const DEFAULTS = {
   keyTonesEnabled:true,      /* نغمة قصيرة عند الضغط على أي مفتاح */
   uiOverrides:{},            /* مواضع/أحجام العناصر المخصَّصة من الشاشة السرية */
   secretPanelOpacity:95,     /* شفافية الشاشة السرية نفسها */
+  slideGroupOffsetY:0,       /* إزاحة عناصر شاشة الضبط (السلايد) كمجموعة واحدة */
+  secretRowGap:0,            /* المسافة الإضافية بين مفاتيح الشاشة السرية نفسها */
   lat:23.588, lng:58.408, wilaya:"مسقط",
   autoLocate:true,  /* يصبح false عند اختيار الولاية يدوياً */
   theme:"classic"   /* الخلفية المختارة */
@@ -2147,10 +2161,25 @@ function attachMagnet(inp, defaultVal, threshold){
 function applySecretPanelOpacity(){
   $("#secretPanel").style.background = "rgba(10,10,14,"+(settings.secretPanelOpacity/100)+")";
 }
+/* يزيح كل عناصر شاشة الضبط المتمرّرة (السلايد) معاً كمجموعة واحدة للأعلى/الأسفل */
+function applySlideGroupOffset(){
+  const el = $("#settingsScroll");
+  if(el) el.style.transform = settings.slideGroupOffsetY ? "translateY("+settings.slideGroupOffsetY+"cqh)" : "";
+}
+/* مسافة إضافية بين مفاتيح الشاشة السرية نفسها، بحركة ناعمة بطيئة
+   (transition على .secret-item معرّف في CSS) */
+function applySecretRowGap(){
+  document.querySelectorAll(".secret-item").forEach(it=>{
+    it.style.marginBottom = settings.secretRowGap ? settings.secretRowGap+"cqh" : "";
+  });
+}
 function openSecretPanel(){
   buildSecretPanelUI();
   $("#secretOpacitySlider").value = settings.secretPanelOpacity;
   applySecretPanelOpacity();
+  $("#slideGroupSlider").value = settings.slideGroupOffsetY;
+  $("#secretRowGapSlider").value = settings.secretRowGap;
+  applySecretRowGap();
   $("#secretPanel").classList.remove("hidden");
   if(navigator.vibrate) navigator.vibrate([40,30,40,30,80]);
 }
@@ -2417,6 +2446,16 @@ document.addEventListener("DOMContentLoaded", ()=>{
   $("#secretOpacitySlider").addEventListener("input", ()=>{
     settings.secretPanelOpacity = parseInt($("#secretOpacitySlider").value,10);
     applySecretPanelOpacity();
+  });
+  attachMagnet($("#slideGroupSlider"), 0, 1);
+  $("#slideGroupSlider").addEventListener("input", ()=>{
+    settings.slideGroupOffsetY = parseInt($("#slideGroupSlider").value,10);
+    applySlideGroupOffset();
+  });
+  attachMagnet($("#secretRowGapSlider"), 0, 1);
+  $("#secretRowGapSlider").addEventListener("input", ()=>{
+    settings.secretRowGap = parseInt($("#secretRowGapSlider").value,10);
+    applySecretRowGap();
   });
   $("#secretCloseBtn").addEventListener("click", closeSecretPanel);
   $("#secretSaveBtn").addEventListener("click", ()=>{ saveSettings(); closeSecretPanel(); });
@@ -2971,6 +3010,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   refreshCountdownToggleUI();
   refreshKeyToneToggleUI();
   applyUiOverrides();
+  applySlideGroupOffset();
   updateAll(".version-label", el=>el.textContent = "الإصدار " + APP_VERSION);
   refreshBellUI();
   refreshFmtUI();
