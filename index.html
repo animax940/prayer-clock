@@ -1123,7 +1123,7 @@ const SOUNDS = [
 ];
 
 /* رقم إصدار التطبيق — يُرقَّى يدوياً بواحد عند كل تحديث جديد يُنشر */
-const APP_VERSION = "18";
+const APP_VERSION = "19";
 
 /* ألوان ساعة العد التنازلي — تتبدّل بالضغط عليها */
 const COUNTDOWN_COLORS = [
@@ -3061,12 +3061,20 @@ document.addEventListener("DOMContentLoaded", ()=>{
       "Accept": "application/vnd.github+json"
     };
     let sha = null;
+    /* يدمج مع محتوى config.json الحالي بدل استبداله بالكامل — حتى لا
+       يمحو نشرُ لوحة التحكم العامة تصميمَ الشاشة السرية (حقل ui)
+       المنشور سابقاً، أو أي حقل آخر لا تعرفه هذه اللوحة */
+    let merged = Object.assign({}, cfg);
     const cur = await fetch(api, {headers, cache:"no-store"});
-    if(cur.ok) sha = (await cur.json()).sha;
+    if(cur.ok){
+      const j = await cur.json();
+      sha = j.sha;
+      try{ merged = Object.assign({}, JSON.parse(b64DecodeUtf8(j.content)), cfg); }catch(_){}
+    }
     else if(cur.status === 401) throw new Error("bad-token");
     const payload = {
       message: "تحديث الإعدادات العامة من التطبيق",
-      content: toBase64Utf8(JSON.stringify(cfg, null, 2))
+      content: toBase64Utf8(JSON.stringify(merged, null, 2))
     };
     if(sha) payload.sha = sha;
     const r = await fetch(api, {method:"PUT", headers, body: JSON.stringify(payload)});
