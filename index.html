@@ -1123,7 +1123,7 @@ const SOUNDS = [
 ];
 
 /* رقم إصدار التطبيق — يُرقَّى يدوياً بواحد عند كل تحديث جديد يُنشر */
-const APP_VERSION = "20";
+const APP_VERSION = "21";
 
 /* ألوان ساعة العد التنازلي — تتبدّل بالضغط عليها */
 const COUNTDOWN_COLORS = [
@@ -1496,7 +1496,15 @@ async function scheduleNativeAdhanAlarms(){
       items.push({time: dt.getTime(), prayer: p.name, wilaya: settings.wilaya});
     }
   }
-  try{ await plugin.schedule({items}); }catch(e){}
+  /* نرسل حالة الكتم والصوت المختار مع كل جدولة، ليشغّل الجانب الأصلي
+     الأذان الصحيح والتطبيق مغلق تماماً (ولا يشغّله إن كان مكتوماً) */
+  try{
+    await plugin.schedule({
+      items,
+      bellOn: !!settings.bellOn,
+      soundIndex: settings.soundIndex % SOUNDS.length
+    });
+  }catch(e){}
 }
 
 /* ---------- التاريخ الهجري ---------- */
@@ -1957,6 +1965,8 @@ function showAdhanOverlay(title, sub){
 }
 function hideAdhanOverlay(){
   $("#adhanOverlay").classList.remove("show");
+  /* إغلاق الإطار يوقف الأذان أيضاً (سواء من الصفحة أو من الخدمة الأصلية) */
+  stopAdhan();
 }
 
 /* ---------- أدوات واجهة ---------- */
@@ -2033,6 +2043,13 @@ function playIqamahTone(){
 let adhanAudio = null;
 function stopAdhan(){
   if(adhanAudio){ try{ adhanAudio.pause(); }catch(e){} adhanAudio = null; }
+  /* وكذلك الأذان المُشغَّل أصلياً في الخلفية (تطبيق أندرويد) */
+  stopNativeAdhanSound();
+}
+function stopNativeAdhanSound(){
+  if(!NATIVE) return;
+  const plugin = window.Capacitor.Plugins.AdhanAlarm;
+  if(plugin && plugin.stopSound) plugin.stopSound().catch(()=>{});
 }
 
 /* ---------- أذكار الصباح والمساء: تشغيل مستقل عن أصوات التنبيه ---------- */
@@ -2632,6 +2649,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
     refreshBellUI(); updateTicker();
     toast(settings.bellOn ? "تم تفعيل الإشعارات والصوت" : "تم إيقاف الإشعارات والصوت");
     if(settings.bellOn){ ensureAudio(); }
+    scheduleNativeAdhanAlarms();   /* تحديث حالة الكتم لدى الجانب الأصلي */
   }));
 
   $("#gotoSettings").addEventListener("click", ()=>{ ensureAudio(); showScreen("settingsScreen"); });
@@ -3228,6 +3246,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
     $("#soundBtn").textContent = "🔊 " + SOUNDS[settings.soundIndex].name;
     settings.volume = parseInt($("#volSlider").value,10);
     ensureAudio(); playAdhan();
+    scheduleNativeAdhanAlarms();   /* تحديث الصوت المختار لدى الجانب الأصلي */
   });
 
   $("#updateCalendar").addEventListener("click", async ()=>{
@@ -3285,7 +3304,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
     try{
       const r = await plugin.getPendingTrigger();
       if(r && r.prayer){
-        playAdhan();
+        /* لا نشغّل الأذان هنا: الجانب الأصلي شغّله فعلاً عبر الخدمة
+           الأمامية، فتشغيله ثانيةً من الصفحة يعني أذانين متداخلين */
         showAdhanOverlay("🕌 حان الآن موعد أذان " + r.prayer, r.wilaya || settings.wilaya);
       }
     }catch(e){}
