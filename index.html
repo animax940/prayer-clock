@@ -1123,7 +1123,7 @@ const SOUNDS = [
 ];
 
 /* رقم إصدار التطبيق — يُرقَّى يدوياً بواحد عند كل تحديث جديد يُنشر */
-const APP_VERSION = "17";
+const APP_VERSION = "18";
 
 /* ألوان ساعة العد التنازلي — تتبدّل بالضغط عليها */
 const COUNTDOWN_COLORS = [
@@ -1149,6 +1149,8 @@ const DEFAULTS = {
   slideGroupOffsetY:0,       /* إزاحة عناصر شاشة الضبط (السلايد) كمجموعة واحدة */
   secretRowGap:0,            /* المسافة الإضافية بين مفاتيح الشاشة السرية نفسها */
   arrowsReversed:false,      /* عكس اتجاه ظهور أسهم التمرير في شاشة الضبط */
+  qiblaRingWidth:3,          /* سمك الحافة الذهبية لقرص البوصلة */
+  tempRingWidth:3,           /* سمك الحافة الذهبية لقرص درجة الحرارة */
   lat:23.588, lng:58.408, wilaya:"مسقط",
   autoLocate:true,  /* يصبح false عند اختيار الولاية يدوياً */
   theme:"classic"   /* الخلفية المختارة */
@@ -1245,7 +1247,9 @@ function buildSecretConfigPart(){
     secretPanelWidth: settings.secretPanelWidth,
     slideGroupOffsetY: settings.slideGroupOffsetY,
     secretRowGap: settings.secretRowGap,
-    arrowsReversed: settings.arrowsReversed
+    arrowsReversed: settings.arrowsReversed,
+    qiblaRingWidth: settings.qiblaRingWidth,
+    tempRingWidth: settings.tempRingWidth
   };
 }
 function applySecretConfigPart(ui){
@@ -1255,10 +1259,14 @@ function applySecretConfigPart(ui){
   if(typeof ui.slideGroupOffsetY === "number") settings.slideGroupOffsetY = ui.slideGroupOffsetY;
   if(typeof ui.secretRowGap === "number") settings.secretRowGap = ui.secretRowGap;
   if(typeof ui.arrowsReversed === "boolean") settings.arrowsReversed = ui.arrowsReversed;
+  if(typeof ui.qiblaRingWidth === "number") settings.qiblaRingWidth = ui.qiblaRingWidth;
+  if(typeof ui.tempRingWidth === "number") settings.tempRingWidth = ui.tempRingWidth;
   saveSettings();
   if(typeof applyUiOverrides === "function") applyUiOverrides();
   if(typeof applySlideGroupOffset === "function") applySlideGroupOffset();
   if(typeof updateScrollArrows === "function") updateScrollArrows(true);
+  if(typeof drawQibla === "function") drawQibla();
+  if(typeof drawTemp === "function") drawTemp(lastTemp);
 }
 /* نشر تصميم الشاشة السرية للجميع عبر config.json — يتطلب مفتاح نشر
    المشرف المخزّن محلياً؛ يدمج التصميم مع بقية حقول الإعدادات المركزية */
@@ -1606,9 +1614,9 @@ function drawQibla(){
   ctx.arc(n/2, n/2, R, 0, Math.PI*2);
   ctx.fillStyle = discBg;
   ctx.fill();
-  ctx.lineWidth = 3;
+  ctx.lineWidth = (settings.qiblaRingWidth != null ? settings.qiblaRingWidth : 3) * (n/140);
   ctx.strokeStyle = gold;
-  ctx.stroke();
+  if(ctx.lineWidth > 0) ctx.stroke();
 
   /* علامة الشمال — تدور عكس اتجاه دوران الجهاز لتبقى مطابقة للواقع */
   ctx.save();
@@ -1761,9 +1769,9 @@ function drawTemp(value){
   ctx.arc(n/2, n/2, R, 0, Math.PI*2);
   ctx.fillStyle = discBg;
   ctx.fill();
-  ctx.lineWidth = 3;
+  ctx.lineWidth = (settings.tempRingWidth != null ? settings.tempRingWidth : 3) * (n/140);
   ctx.strokeStyle = gold;
-  ctx.stroke();
+  if(ctx.lineWidth > 0) ctx.stroke();
 
   if(value == null) return;
   const color = value >= 39 ? "#ff5648" : value >= 30 ? "#ffbe4d" : "#5fd9ff";
@@ -2190,9 +2198,9 @@ document.addEventListener("click", e=>{
 const UI_ELEMENTS = [
   {id:"m-bell",     sel:"#mainScreen .js-bell",         label:"مفتاح كتم الصوت (الرئيسية)", section:"الشاشة الرئيسية"},
   {id:"m-fmt",      sel:"#mainScreen .js-fmt",          label:"مفتاح 12H/24H (الرئيسية)"},
-  {id:"m-qibla",    sel:"#qiblaWidget",                label:"بوصلة القبلة"},
+  {id:"m-qibla",    sel:"#qiblaWidget",                label:"بوصلة القبلة", extra:{setting:"qiblaRingWidth", min:0, max:12, label:"سمك الحافة الذهبية للقرص", redraw:"qibla"}},
   {id:"m-qiblatxt", sel:"#qiblaWidget .dir-label",     label:"كلمة القبلة"},
-  {id:"m-temp",     sel:"#tempWidget",                 label:"درجة الحرارة"},
+  {id:"m-temp",     sel:"#tempWidget",                 label:"درجة الحرارة", extra:{setting:"tempRingWidth", min:0, max:12, label:"سمك الحافة الذهبية للقرص", redraw:"temp"}},
   {id:"m-tempc",    sel:"#tempWidget .deg-c",          label:"حرف C"},
   {id:"m-tempdot",  sel:"#tempWidget .deg-dot",        label:"علامة الدائرة (درجة الحرارة)"},
   {id:"m-location", sel:"#mainScreen .location",       label:"اسم الولاية (الرئيسية)"},
@@ -2273,17 +2281,33 @@ function buildSecretPanelUI(){
     const o = ovOf(u.id);
     const item = document.createElement("div");
     item.className = "secret-item";
-    item.innerHTML =
+    let html =
       '<div class="name">'+u.label+'</div>' +
       '<div class="ctrl-line"><span>يمين / يسار</span><input type="range" min="-40" max="40" step="any" value="'+o.x+'" data-id="'+u.id+'" data-k="x"></div>' +
       '<div class="ctrl-line"><span>أعلى / أسفل</span><input type="range" min="-30" max="30" step="any" value="'+o.y+'" data-id="'+u.id+'" data-k="y"></div>' +
       '<div class="ctrl-line"><span>العرض</span><input type="range" min="50" max="200" step="any" value="'+(o.sx*100)+'" data-id="'+u.id+'" data-k="sx"></div>' +
       '<div class="ctrl-line"><span>الطول</span><input type="range" min="50" max="200" step="any" value="'+(o.sy*100)+'" data-id="'+u.id+'" data-k="sy"></div>';
+    if(u.extra){
+      const ev = settings[u.extra.setting] != null ? settings[u.extra.setting] : 3;
+      html += '<div class="ctrl-line"><span>'+u.extra.label+'</span>' +
+        '<input type="range" min="'+u.extra.min+'" max="'+u.extra.max+'" step="any" value="'+ev+'"' +
+        ' data-extra="'+u.extra.setting+'" data-redraw="'+u.extra.redraw+'"></div>';
+    }
+    item.innerHTML = html;
     list.appendChild(item);
   }
+  /* أشرطة سمك حافة الأقراص (البوصلة/الحرارة) — تحدّث الإعداد وتعيد رسم القرص */
+  list.querySelectorAll("input[data-extra]").forEach(inp=>{
+    attachMagnet(inp, 3, 0.5);
+    inp.addEventListener("input", ()=>{
+      settings[inp.dataset.extra] = parseFloat(inp.value);
+      if(inp.dataset.redraw === "qibla" && typeof drawQibla === "function") drawQibla();
+      else if(inp.dataset.redraw === "temp" && typeof drawTemp === "function") drawTemp(lastTemp);
+    });
+  });
   const magnetDefault = {x:0, y:0, sx:100, sy:100};
   const magnetThreshold = {x:1, y:1, sx:1, sy:1};
-  list.querySelectorAll("input[type=range]").forEach(inp=>{
+  list.querySelectorAll("input[data-k]").forEach(inp=>{
     attachMagnet(inp, magnetDefault[inp.dataset.k], magnetThreshold[inp.dataset.k]);
     inp.addEventListener("input", ()=>{
       const o = ovOf(inp.dataset.id);
