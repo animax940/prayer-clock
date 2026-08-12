@@ -680,6 +680,12 @@
     border:0.5cqw solid var(--gold-dim);border-radius:3cqw;font-weight:900;font-size:3.6cqw;
     cursor:pointer;
   }
+  .secret-toggle-btn{
+    align-self:stretch;padding:.7cqh 0;cursor:pointer;font-family:inherit;
+    background:linear-gradient(180deg,#241007,#0d0402);color:var(--gold-strong);
+    border:0.4cqw solid var(--gold-dim);border-radius:2.5cqw;font-weight:900;font-size:3cqw;
+  }
+  .secret-toggle-btn.on{color:#4fc3f7;border-color:#4fc3f7;}
 </style>
 </head>
 <body>
@@ -969,6 +975,10 @@
         <label class="red-label">المسافة بين مفاتيح الشاشة السرية نفسها</label>
         <input type="range" class="red-range" id="secretRowGapSlider" min="-50" max="100" step="any" value="0">
       </div>
+      <div class="secret-row">
+        <label>اتجاه أسهم التمرير في شاشة الضبط</label>
+        <button type="button" class="secret-toggle-btn" id="arrowsReverseToggle">الوضع الطبيعي</button>
+      </div>
       <div class="secret-list" id="secretList"></div>
     </div>
     <button class="secret-save" id="secretSaveBtn">💾 حفظ وإغلاق</button>
@@ -1113,7 +1123,7 @@ const SOUNDS = [
 ];
 
 /* رقم إصدار التطبيق — يُرقَّى يدوياً بواحد عند كل تحديث جديد يُنشر */
-const APP_VERSION = "16";
+const APP_VERSION = "17";
 
 /* ألوان ساعة العد التنازلي — تتبدّل بالضغط عليها */
 const COUNTDOWN_COLORS = [
@@ -1138,6 +1148,7 @@ const DEFAULTS = {
   secretPanelWidth:100,      /* عرض الشاشة السرية (%) — بلا ضغط النصوص */
   slideGroupOffsetY:0,       /* إزاحة عناصر شاشة الضبط (السلايد) كمجموعة واحدة */
   secretRowGap:0,            /* المسافة الإضافية بين مفاتيح الشاشة السرية نفسها */
+  arrowsReversed:false,      /* عكس اتجاه ظهور أسهم التمرير في شاشة الضبط */
   lat:23.588, lng:58.408, wilaya:"مسقط",
   autoLocate:true,  /* يصبح false عند اختيار الولاية يدوياً */
   theme:"classic"   /* الخلفية المختارة */
@@ -1233,7 +1244,8 @@ function buildSecretConfigPart(){
     secretPanelOpacity: settings.secretPanelOpacity,
     secretPanelWidth: settings.secretPanelWidth,
     slideGroupOffsetY: settings.slideGroupOffsetY,
-    secretRowGap: settings.secretRowGap
+    secretRowGap: settings.secretRowGap,
+    arrowsReversed: settings.arrowsReversed
   };
 }
 function applySecretConfigPart(ui){
@@ -1242,9 +1254,11 @@ function applySecretConfigPart(ui){
   if(typeof ui.secretPanelWidth === "number") settings.secretPanelWidth = ui.secretPanelWidth;
   if(typeof ui.slideGroupOffsetY === "number") settings.slideGroupOffsetY = ui.slideGroupOffsetY;
   if(typeof ui.secretRowGap === "number") settings.secretRowGap = ui.secretRowGap;
+  if(typeof ui.arrowsReversed === "boolean") settings.arrowsReversed = ui.arrowsReversed;
   saveSettings();
   if(typeof applyUiOverrides === "function") applyUiOverrides();
   if(typeof applySlideGroupOffset === "function") applySlideGroupOffset();
+  if(typeof updateScrollArrows === "function") updateScrollArrows(true);
 }
 /* نشر تصميم الشاشة السرية للجميع عبر config.json — يتطلب مفتاح نشر
    المشرف المخزّن محلياً؛ يدمج التصميم مع بقية حقول الإعدادات المركزية */
@@ -2144,6 +2158,16 @@ function playKeyClick(){
   if(!audioCtx) return;
   playTone(1000, 0, .04, 0.12);
 }
+/* زر الحفظ: ثلاث نغمات قصيرة متتابعة تصاعدية، متزامنة مع نبضات الاهتزاز
+   الثلاث [15,60,15,60,15] فتبدأ عند 0 و75 و150 ملّي ثانية */
+function playSaveChime(){
+  if(!settings.keyTonesEnabled) return;
+  ensureAudio();
+  if(!audioCtx) return;
+  playTone(660,  0.000, .05, 0.14);
+  playTone(880,  0.075, .05, 0.14);
+  playTone(1175, 0.150, .06, 0.15);
+}
 function vibrateShort(){
   if(navigator.vibrate) navigator.vibrate(15);
 }
@@ -2153,8 +2177,8 @@ function vibrateTriple(){
 document.addEventListener("click", e=>{
   const el = e.target.closest("button, .js-bell, .js-fmt");
   if(!el) return;
-  playKeyClick();
-  if(el.id === "saveBtn") vibrateTriple(); else vibrateShort();
+  if(el.id === "saveBtn"){ playSaveChime(); vibrateTriple(); }
+  else { playKeyClick(); vibrateShort(); }
 });
 
 /* ============================================================
@@ -2321,8 +2345,15 @@ function openSecretPanel(){
   $("#slideGroupSlider").value = settings.slideGroupOffsetY;
   $("#secretRowGapSlider").value = settings.secretRowGap;
   applySecretRowGap();
+  refreshArrowsReverseToggle();
   $("#secretPanel").classList.remove("hidden");
   if(navigator.vibrate) navigator.vibrate([40,30,40,30,80]);
+}
+function refreshArrowsReverseToggle(){
+  const btn = $("#arrowsReverseToggle");
+  if(!btn) return;
+  btn.textContent = settings.arrowsReversed ? "الوضع المعكوس" : "الوضع الطبيعي";
+  btn.classList.toggle("on", settings.arrowsReversed);
 }
 function closeSecretPanel(){
   $("#secretPanel").classList.add("hidden");
@@ -2517,24 +2548,31 @@ function showScreen(id){
   if(id==="settingsScreen"){
     buildSettingsUI();
     scrollAtEdge = null;
-    setTimeout(updateScrollArrows, 50);
+    /* الاستدعاء الأولي صامت حتى لا تُصدر نقرة الحافة صوتاً ثانياً فوق
+       صوت مفتاح الضبط عند فتح الشاشة */
+    setTimeout(()=>updateScrollArrows(true), 50);
   }
 }
 /* سهما التمرير الوامضان: يظهران فقط عند وجود مزيد من المحتوى في ذلك الاتجاه */
 let scrollAtEdge = null;   /* "top" | "bottom" | null — لإصدار صوت النقرة مرة واحدة فقط عند الوصول */
-function updateScrollArrows(){
+function updateScrollArrows(silent){
   const el = $("#settingsScroll");
   const up = $("#scrollArrowUp"), down = $("#scrollArrowDown");
   if(!el || !up || !down) return;
   const atTop = el.scrollTop <= 2;
   const atBottom = el.scrollTop >= el.scrollHeight - el.clientHeight - 2;
-  up.classList.toggle("show", !atTop);
-  down.classList.toggle("show", !atBottom);
+  /* الوضع الطبيعي: أقصى ارتفاع (أعلى القائمة) ⇐ تظهر الأسهم السفلية،
+     أقصى انخفاض (أسفل القائمة) ⇐ تظهر الأسهم العلوية. ويُعكس هذا من
+     مفتاح في الشاشة السرية */
+  const showUp   = settings.arrowsReversed ? !atBottom : !atTop;
+  const showDown = settings.arrowsReversed ? !atTop    : !atBottom;
+  up.classList.toggle("show", showUp);
+  down.classList.toggle("show", showDown);
 
   /* مغناطيس بسيط: نقرة صوتية قصيرة عند لمس أقصى ارتفاع أو أقصى انخفاض،
      مرة واحدة فقط عند الوصول لا أثناء البقاء عندها */
   const edge = atTop ? "top" : (atBottom ? "bottom" : null);
-  if(edge && edge !== scrollAtEdge) playScrollClick();
+  if(!silent && edge && edge !== scrollAtEdge) playScrollClick();
   scrollAtEdge = edge;
 }
 function playScrollClick(){
@@ -2602,6 +2640,11 @@ document.addEventListener("DOMContentLoaded", ()=>{
   $("#secretRowGapSlider").addEventListener("input", ()=>{
     settings.secretRowGap = parseFloat($("#secretRowGapSlider").value);
     applySecretRowGap();
+  });
+  $("#arrowsReverseToggle").addEventListener("click", ()=>{
+    settings.arrowsReversed = !settings.arrowsReversed;
+    refreshArrowsReverseToggle();
+    updateScrollArrows(true);
   });
   $("#secretCloseBtn").addEventListener("click", closeSecretPanel);
   $("#secretSaveBtn").addEventListener("click", async ()=>{
