@@ -1123,7 +1123,7 @@ const SOUNDS = [
 ];
 
 /* رقم إصدار التطبيق — يُرقَّى يدوياً بواحد عند كل تحديث جديد يُنشر */
-const APP_VERSION = "19";
+const APP_VERSION = "20";
 
 /* ألوان ساعة العد التنازلي — تتبدّل بالضغط عليها */
 const COUNTDOWN_COLORS = [
@@ -1181,7 +1181,6 @@ const REPO = "animax940/prayer-clock";
 
 /* قائمة الأجهزة المصرّح لها بالبصمة — تُنشر من جهاز المشرف فقط */
 let remoteAdminDevices = [];
-let applyThemeById = null;      /* تُضبط بعد تحميل الصفحة */
 
 async function sha256hex(str){
   if(crypto.subtle){
@@ -1208,9 +1207,8 @@ function applyRemoteConfig(cfg){
     if(el) el.textContent = TICKER_SETTINGS_TEXT;
   }
   if(Array.isArray(cfg.adminDevices)) remoteAdminDevices = cfg.adminDevices;
-  /* الخلفية تُفرض عند صدور نسخة جديدة فقط، فلا تلغي اختيار المستخدم */
-  if(isNew && typeof cfg.theme === "string" && typeof applyThemeById === "function")
-    applyThemeById(cfg.theme);
+  /* الخلفية (الثيم) لا تُفرض على المستخدمين إطلاقاً: صارت خياراً حرّاً
+     لكل مستخدم من زر "المواضيع" في شاشة الضبط، فلا يُنشر ولا يُطبَّق */
 
   /* التاريخ الهجري يُفرض فقط عند صدور نسخة جديدة، حتى لا نلغي تعديل المستخدم */
   if(isNew && typeof cfg.hijriOffsetDays === "number"){
@@ -2773,7 +2771,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
     buildThemeGrid();
     $("#themePick").classList.add("show");
   }
-  applyThemeById = applyTheme;   /* ليستخدمها التحكم المركزي */
 
 /* ---- نافذة تحديد الموقع ---- */
   const sel = $("#wilayaSelect");
@@ -3015,10 +3012,11 @@ document.addEventListener("DOMContentLoaded", ()=>{
     const devices = remoteAdminDevices.slice();
     const h = await bioDeviceHash();
     if(h && !devices.includes(h)) devices.push(h);
+    /* لا يُنشر الثيم: هو خيار حرّ لكل مستخدم من زر "المواضيع" في شاشة
+       الضبط. المنشور هنا: النص المتحرك والتاريخ الهجري فقط */
     return {
       updatedAt: new Date().toISOString(),
       adminDevices: devices,
-      theme: settings.theme,
       hijriOffsetDays: offsetForHijri(day, month),
       tickerMain: $("#adTickerMain").value.trim() || TICKER_MAIN_TEXT,
       tickerSettings: $("#adTickerSettings").value.trim() || TICKER_SETTINGS_TEXT
