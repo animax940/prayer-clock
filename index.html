@@ -490,12 +490,12 @@
   #settingsScreen .ampm-live{font-size:3.6cqw;}
   #settingsScreen .location{font-size:5cqw;min-height:3.6cqh;margin-bottom:0.6cqh;}
   #settingsScreen .ticker{margin-top:.4cqh;}
-  #settingsScreen .set-box{margin-top:.7cqh;padding:.35cqh 4cqw .25cqh;}
+  #settingsScreen .set-box{margin-top:.35cqh;padding:.35cqh 4cqw .25cqh;}
   #settingsScreen .set-box h3{margin-bottom:.3cqh;}
   #settingsScreen .iq-row{margin:0;line-height:1;}
   #settingsScreen .iq-row label{font-size:3.7cqw;line-height:1;}
   #settingsScreen .iq-row .num-input{padding-top:0;padding-bottom:0;font-size:3.7cqw;line-height:1;border-width:0.3cqw;}
-  #settingsScreen .ctrl-stack{margin-top:1cqh;}
+  #settingsScreen .ctrl-stack{margin-top:.5cqh;}
   #settingsScreen .sound-btn{
     margin:0;padding:.1cqh 0;width:100%;display:block;
     font-size:3.7cqw;line-height:normal;
@@ -831,16 +831,16 @@
         </div>
       </div>
 
-      <button class="sound-btn icon-left" id="pushToggle" style="width:100%;margin-top:.3cqh"><span class="btn-icon">🔔</span><span class="btn-label">تفعيل إشعارات الأذان</span></button>
+      <button class="sound-btn icon-left" id="pushToggle" style="width:100%;margin-top:.15cqh"><span class="btn-icon">🔔</span><span class="btn-label">تفعيل إشعارات الأذان</span></button>
 
-      <button class="sound-btn icon-left" id="countdownToggle" style="width:100%;margin-top:.3cqh"><span class="btn-icon">🕐</span><span class="btn-label">إخفاء العد التنازلي</span></button>
-      <button class="sound-btn icon-left" id="themeToggle" style="width:100%;margin-top:.3cqh"><span class="btn-icon">🎨</span><span class="btn-label">المواضيع</span></button>
-      <button class="sound-btn icon-left" id="adhanModeToggleSettings" style="width:100%;margin-top:.3cqh"><span class="btn-icon">🕰️</span><span class="btn-label">وقت الأذان: آلي</span></button>
-      <div class="ctrl-row" style="margin-top:.3cqh">
+      <button class="sound-btn icon-left" id="countdownToggle" style="width:100%;margin-top:.15cqh"><span class="btn-icon">🕐</span><span class="btn-label">إخفاء العد التنازلي</span></button>
+      <button class="sound-btn icon-left" id="themeToggle" style="width:100%;margin-top:.15cqh"><span class="btn-icon">🎨</span><span class="btn-label">المواضيع</span></button>
+      <button class="sound-btn icon-left" id="adhanModeToggleSettings" style="width:100%;margin-top:.15cqh"><span class="btn-icon">🕰️</span><span class="btn-label">وقت الأذان: آلي</span></button>
+      <div class="ctrl-row" style="margin-top:.15cqh">
         <button class="sound-btn pill-half" id="duaaBtn">أدعية مأثورة</button>
         <button class="sound-btn pill-half" id="duaaStopBtn">إيقاف</button>
       </div>
-      <button class="sound-btn icon-left" id="keyToneToggle" style="width:100%;margin-top:.3cqh"><span class="btn-icon">🔈</span><span class="btn-label">نغمة المفاتيح</span></button>
+      <button class="sound-btn icon-left" id="keyToneToggle" style="width:100%;margin-top:.15cqh"><span class="btn-icon">🔈</span><span class="btn-label">نغمة المفاتيح</span></button>
     </div>
 
     <div class="settings-fixed-bottom">
@@ -1135,7 +1135,7 @@ const SOUNDS = [
 ];
 
 /* رقم إصدار التطبيق — يُرقَّى يدوياً بواحد عند كل تحديث جديد يُنشر */
-const APP_VERSION = "24";
+const APP_VERSION = "25";
 
 /* ألوان ساعة العد التنازلي — تتبدّل بالضغط عليها */
 const COUNTDOWN_COLORS = [
@@ -2323,6 +2323,9 @@ const UI_ELEMENTS = [
   {id:"s-pushbtn",  sel:"#pushToggle",                  label:"زر تفعيل التنبيهات"},
   {id:"s-cdbtn",    sel:"#countdownToggle",              label:"زر إظهار/إخفاء العد التنازلي"},
   {id:"s-themebtn", sel:"#themeToggle",                  label:"زر المواضيع"},
+  {id:"s-adhanmodebtn", sel:"#adhanModeToggleSettings",  label:"زر وقت الأذان (يدوي/آلي)"},
+  {id:"s-duaarow",  sel:"#duaaBtn",                      label:"زر أدعية مأثورة"},
+  {id:"s-duaastop", sel:"#duaaStopBtn",                  label:"زر إيقاف الأدعية"},
   {id:"s-keytonebtn", sel:"#keyToneToggle",              label:"زر نغمة المفاتيح"},
   {id:"s-ticker",   sel:"#settingsScreen .ticker",       label:"النص المتحرك (الضبط)"},
   {id:"s-savebtn",  sel:"#saveBtn",                      label:"زر الحفظ"},
