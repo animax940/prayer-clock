@@ -53,7 +53,10 @@ body = body.replace('const CONFIG_URL = "config.json";',
 # ملفات الأذكار والصوت الثالث كبيرة نسبياً — تُجلب من الموقع المباشر
 # بدل دمجها كـ base64، حفاظاً على حجم معقول للنسخة المستضافة على claude.ai
 PAGES_BASE = "https://animax940.github.io/prayer-clock/"
-for rel in ("sounds/azkar_morning.mp3", "sounds/azkar_evening.mp3", "sounds/adhan3.mp3"):
+_remote = ["sounds/azkar_morning.mp3", "sounds/azkar_evening.mp3", "sounds/adhan3.mp3"]
+# مقاطع الأدعية المأثورة تُجلب كذلك من الموقع المباشر
+_remote += ["sounds/duaa%d.mp3" % i for i in range(1, 6)]
+for rel in _remote:
     body = body.replace('"%s"' % rel, '"%s%s"' % (PAGES_BASE, rel))
 
 html = "<title>منبه الصلاة</title>\n%s\n%s" % (style, body)

@@ -835,6 +835,11 @@
 
       <button class="sound-btn icon-left" id="countdownToggle" style="width:100%;margin-top:.3cqh"><span class="btn-icon">🕐</span><span class="btn-label">إخفاء العد التنازلي</span></button>
       <button class="sound-btn icon-left" id="themeToggle" style="width:100%;margin-top:.3cqh"><span class="btn-icon">🎨</span><span class="btn-label">المواضيع</span></button>
+      <button class="sound-btn icon-left" id="adhanModeToggleSettings" style="width:100%;margin-top:.3cqh"><span class="btn-icon">🕰️</span><span class="btn-label">وقت الأذان: آلي</span></button>
+      <div class="ctrl-row" style="margin-top:.3cqh">
+        <button class="sound-btn pill-half" id="duaaBtn">🤲 أدعية مأثورة</button>
+        <button class="sound-btn pill-half" id="duaaStopBtn">⏹️ إيقاف</button>
+      </div>
       <button class="sound-btn icon-left" id="keyToneToggle" style="width:100%;margin-top:.3cqh"><span class="btn-icon">🔈</span><span class="btn-label">نغمة المفاتيح</span></button>
     </div>
 
@@ -1130,7 +1135,7 @@ const SOUNDS = [
 ];
 
 /* رقم إصدار التطبيق — يُرقَّى يدوياً بواحد عند كل تحديث جديد يُنشر */
-const APP_VERSION = "22";
+const APP_VERSION = "23";
 
 /* ألوان ساعة العد التنازلي — تتبدّل بالضغط عليها */
 const COUNTDOWN_COLORS = [
@@ -2115,10 +2120,53 @@ function toggleAzkar(id){
   a.play().catch(()=>{ stopAzkar(); toast("تعذر تشغيل الملف"); });
   updateAzkarButtons();
 }
+/* ---------- الأدعية المأثورة ----------
+   مقاطع متتالية: يبدأ التشغيل من الأول ثم ينتقل تلقائياً للتالي عند
+   انتهائه، والضغط على المفتاح مرة أخرى ينتقل للمقطع التالي مباشرة.
+   تُضاف الملفات لاحقاً في مجلد sounds باسم duaa1.mp3 وهكذا. */
+const DUAA_FILES = [
+  "sounds/duaa1.mp3", "sounds/duaa2.mp3", "sounds/duaa3.mp3",
+  "sounds/duaa4.mp3", "sounds/duaa5.mp3"
+];
+let duaaAudio = null, duaaIndex = -1;
+function updateDuaaButton(){
+  const b = $("#duaaBtn");
+  if(b) b.classList.toggle("playing", !!duaaAudio);
+}
+function stopDuaa(){
+  if(duaaAudio){ try{ duaaAudio.pause(); }catch(e){} duaaAudio = null; }
+  duaaIndex = -1;
+  updateDuaaButton();
+}
+/* tries: عدد المقاطع المفقودة المتخطّاة في هذه المحاولة — إن فُقدت كلها
+   نتوقف برسالة بدل الدوران بلا نهاية */
+function playDuaaAt(i, tries){
+  if(duaaAudio){ try{ duaaAudio.pause(); }catch(e){} duaaAudio = null; }
+  stopAdhan(); stopAzkar();   /* لا تتداخل مع الأذان أو الأذكار */
+  ensureAudio();
+  duaaIndex = ((i % DUAA_FILES.length) + DUAA_FILES.length) % DUAA_FILES.length;
+  const a = new Audio(DUAA_FILES[duaaIndex]);
+  a.volume = Math.min(1, Math.max(0, settings.volume/100));
+  a.onended = ()=> playDuaaAt(duaaIndex + 1, 0);   /* تتابع تلقائي */
+  a.onerror = ()=>{
+    if((tries || 0) + 1 >= DUAA_FILES.length){
+      stopDuaa(); toast("لم تُضف مقاطع الأدعية بعد"); return;
+    }
+    playDuaaAt(duaaIndex + 1, (tries || 0) + 1);
+  };
+  duaaAudio = a;
+  a.play().catch(()=>{ /* يتكفّل بها onerror */ });
+  updateDuaaButton();
+}
+function toggleDuaa(){
+  playDuaaAt(duaaAudio ? duaaIndex + 1 : 0, 0);   /* ضغطة أخرى = المقطع التالي */
+}
+
 function playAdhan(){
   if(!settings.bellOn) return;
   stopAdhan();
   stopAzkar();   /* لا يتداخل الأذان مع الأذكار */
+  stopDuaa();
   const snd = SOUNDS[settings.soundIndex % SOUNDS.length];
   const a = new Audio(snd.file);
   a.volume = Math.min(1, Math.max(0, settings.volume/100));
@@ -2437,6 +2485,14 @@ function refreshAdhanModeToggle(){
   btn.textContent = settings.manualAdhanMode ? "الوضع اليدوي" : "الوضع الآلي";
   btn.classList.toggle("on", settings.manualAdhanMode);
 }
+/* نفس المفتاح في شاشة الضبط (بحجم مفتاح المواضيع) */
+function refreshAdhanModeSettingsBtn(){
+  const btn = $("#adhanModeToggleSettings");
+  if(!btn) return;
+  setBtnIconLabel(btn, "🕰️",
+    settings.manualAdhanMode ? "وقت الأذان: يدوي" : "وقت الأذان: آلي",
+    !settings.manualAdhanMode);
+}
 function closeSecretPanel(){
   $("#secretPanel").classList.add("hidden");
 }
@@ -2689,6 +2745,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
     settings.bellOn = !settings.bellOn; saveSettings();
     if(!settings.bellOn) stopAdhan();
     stopAzkar();
+    stopDuaa();
     refreshBellUI(); updateTicker();
     toast(settings.bellOn ? "تم تفعيل الإشعارات والصوت" : "تم إيقاف الإشعارات والصوت");
     if(settings.bellOn){ ensureAudio(); }
@@ -2715,6 +2772,16 @@ document.addEventListener("DOMContentLoaded", ()=>{
   $("#countdownToggle").addEventListener("click", toggleCountdownVisibility);
   $("#themeToggle").addEventListener("click", openThemePick);
   $("#keyToneToggle").addEventListener("click", toggleKeyTones);
+  $("#duaaBtn").addEventListener("click", toggleDuaa);
+  $("#duaaStopBtn").addEventListener("click", stopDuaa);
+  $("#adhanModeToggleSettings").addEventListener("click", ()=>{
+    settings.manualAdhanMode = !settings.manualAdhanMode;
+    saveSettings();
+    refreshAdhanModeToggle();
+    refreshAdhanModeSettingsBtn();
+    refreshTimes();   /* العودة للوضع الآلي تُرجع الأوقات الأصلية */
+    tick();
+  });
 
   attachMagnet($("#secretOpacitySlider"), 95, 1);
   $("#secretOpacitySlider").addEventListener("input", ()=>{
@@ -2744,6 +2811,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   $("#adhanModeToggle").addEventListener("click", ()=>{
     settings.manualAdhanMode = !settings.manualAdhanMode;
     refreshAdhanModeToggle();
+    refreshAdhanModeSettingsBtn();
     saveSettings();
     refreshTimes();   /* يُظهر/يُخفي مثلثات الضبط في الشاشة الرئيسية */
     tick();
@@ -3270,10 +3338,12 @@ document.addEventListener("DOMContentLoaded", ()=>{
     if(e.target !== e.currentTarget) return;
     stopAdhan();
     stopAzkar();
+    stopDuaa();
   });
   $("#settingsScreen").addEventListener("click", e=>{
     if(e.target !== e.currentTarget) return;
     stopAdhan();
+    stopDuaa();
   });
 
   $("#autoLoc").addEventListener("click", ()=>{
@@ -3345,6 +3415,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   applyCountdownVisibility();
   refreshCountdownToggleUI();
   refreshKeyToneToggleUI();
+  refreshAdhanModeSettingsBtn();
   applyUiOverrides();
   applySlideGroupOffset();
   applySecretPanelWidth();
