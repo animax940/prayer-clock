@@ -236,9 +236,24 @@
   }
   #adhanCountdown .cs{font-size:inherit;}
   .ptable .cell{text-align:center;font-size:5.4cqw;font-weight:900;direction:ltr;line-height:1.2;}
-  /* الوضع اليدوي: مثلثا الزيادة/الإنقاص داخل خانة وقت الأذان */
-  .ptable .cell.adhan-manual{position:relative;}
-  .ptable .cell.adhan-manual .adhan-time{display:inline-block;padding:0 3.6cqw;}
+  /* الوضع اليدوي: الوقت أحمر ويُضغط عليه لتعديله بالكيبورد */
+  .ptable .cell.adhan-manual{
+    position:relative;cursor:pointer;
+    color:#ff3b3b!important;text-shadow:0 0 1.2cqw rgba(255,59,59,.35)!important;
+    border:0.35cqw solid #fff;border-radius:1.8cqw;
+    padding:0 1cqw;
+  }
+  .ptable .cell.adhan-manual .t-part{
+    width:9cqw;text-align:center;direction:ltr;
+    background:var(--input-bg,#000);color:var(--white);
+    border:0.3cqw solid var(--gold-dim);border-radius:1.2cqw;
+    font-size:4.4cqw;font-weight:900;font-family:inherit;padding:0;
+    -moz-appearance:textfield;appearance:textfield;
+  }
+  .ptable .cell.adhan-manual .t-part::-webkit-outer-spin-button,
+  .ptable .cell.adhan-manual .t-part::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+  .ptable .cell.adhan-manual .t-part:focus{outline:none;border-color:var(--gold-strong);}
+  .ptable .cell.adhan-manual .t-sep{padding:0 .5cqw;color:var(--white);}
   .ptable .pname{color:var(--c-pname,var(--gold-strong));font-size:5.2cqw;font-weight:900;text-align:center;line-height:1.2;}
   .ptable .adhan{color:var(--c-adhan,var(--blue));text-shadow:0 0 1.2cqw rgba(143,214,255,.35);}
   .ptable .iqamah{color:var(--c-iqamah,var(--green));text-shadow:0 0 1.2cqw rgba(125,255,160,.35);}
@@ -1135,7 +1150,7 @@ const SOUNDS = [
 ];
 
 /* رقم إصدار التطبيق — يُرقَّى يدوياً بواحد عند كل تحديث جديد يُنشر */
-const APP_VERSION = "25";
+const APP_VERSION = "26";
 
 /* ألوان ساعة العد التنازلي — تتبدّل بالضغط عليها */
 const COUNTDOWN_COLORS = [
@@ -2012,6 +2027,9 @@ function toast(msg){
 /* ---------- جدول الصلوات ---------- */
 function renderTable(){
   const tbl = $("#ptable");
+  /* لا نُعيد بناء الجدول أثناء تعديل وقت الأذان يدوياً، حتى لا يختفي
+     الحقل تحت يد المستخدم عند التحديث الدوري */
+  if(tbl.querySelector(".cell.adhan-manual input")) return;
   tbl.querySelectorAll(".cell,.pname").forEach(e=>e.remove());
   if(!todayTimes) return;
   const nowMin = currentMinutes();
@@ -2027,17 +2045,13 @@ function renderTable(){
     const hl = p.key===curKey ? " row-hl" : "";
     const adhan = document.createElement("div");
     adhan.className = "cell adhan"+hl;
+    /* الوضع اليدوي: الضغط على الوقت نفسه يفتح تعديله بالكيبورد (الساعة
+       والدقيقة كل على حدة) — أما في الوضع الآلي فالوقت غير قابل للتغيير */
     if(settings.manualAdhanMode){
-      /* الوضع اليدوي: مثلثان داخل الخانة لزيادة/إنقاص دقيقة على وقت
-         الأذان — أما في الوضع الآلي فالوقت غير قابل للتغيير */
       adhan.classList.add("adhan-manual");
-      adhan.innerHTML =
-        '<button type="button" class="spin-btn spin-up" data-adhan="'+p.key+'" data-d="1" aria-label="زيادة دقيقة"></button>' +
-        '<span class="adhan-time">'+fmtMinutes(todayTimes[p.key])+'</span>' +
-        '<button type="button" class="spin-btn spin-down" data-adhan="'+p.key+'" data-d="-1" aria-label="إنقاص دقيقة"></button>';
-    }else{
-      adhan.textContent = fmtMinutes(todayTimes[p.key]);
+      adhan.dataset.key = p.key;
     }
+    adhan.textContent = fmtMinutes(todayTimes[p.key]);
     const name = document.createElement("div");
     name.className = "pname"+hl;
     name.textContent = p.name;
@@ -2051,6 +2065,56 @@ function renderTable(){
     tbl.append(adhan,name,iq);
   }
 }
+/* محرّر وقت الأذان في الوضع اليدوي: الساعة والدقيقة حقلان منفصلان
+   بنظام 24 ساعة (بلا لبس بين صباحاً ومساءً). يُحفظ الناتج كإزاحة عن
+   الوقت الأصلي، فتظل صالحة مع تغيّر الأوقات يومياً */
+function openAdhanTimeEditor(cell){
+  if(!settings.manualAdhanMode || cell.querySelector("input")) return;
+  const key = cell.dataset.key;
+  if(!key || !todayTimes) return;
+  const cur = todayTimes[key];
+  const hh = Math.floor(cur / 60), mm = cur % 60;
+  cell.innerHTML =
+    '<input class="t-part t-h" type="number" min="0" max="23" inputmode="numeric" value="'+hh+'">' +
+    '<span class="t-sep">:</span>' +
+    '<input class="t-part t-m" type="number" min="0" max="59" inputmode="numeric" value="'+String(mm).padStart(2,"0")+'">';
+  const h = cell.querySelector(".t-h"), m = cell.querySelector(".t-m");
+  let done = false;
+  const commit = ()=>{
+    if(done) return;
+    done = true;
+    let H = parseInt(h.value, 10), M = parseInt(m.value, 10);
+    if(isNaN(H)) H = hh;
+    if(isNaN(M)) M = mm;
+    H = Math.max(0, Math.min(23, H));
+    M = Math.max(0, Math.min(59, M));
+    if(!settings.adhanOffsets) settings.adhanOffsets = {};
+    /* الوقت الأصلي = المعروض ناقص الإزاحة الحالية */
+    const base = ((cur - (settings.adhanOffsets[key] || 0)) % 1440 + 1440) % 1440;
+    let off = (H * 60 + M) - base;
+    if(off > 720) off -= 1440;
+    if(off < -720) off += 1440;
+    settings.adhanOffsets[key] = off;
+    saveSettings();
+    /* نُزيل الحقول أولاً وإلا منع حارسُ التحرير إعادةَ بناء الجدول */
+    cell.textContent = "";
+    refreshTimes();   /* يعيد الرسم ويحدّث العد التنازلي ومنبّهات أندرويد */
+    tick();
+  };
+  /* لا نُثبّت القيمة عند الانتقال بين حقلَي الساعة والدقيقة */
+  const onBlur = ()=> setTimeout(()=>{
+    const a = document.activeElement;
+    if(a !== h && a !== m) commit();
+  }, 0);
+  h.addEventListener("blur", onBlur);
+  m.addEventListener("blur", onBlur);
+  const onKey = e=>{ if(e.key === "Enter"){ e.preventDefault(); commit(); } };
+  h.addEventListener("keydown", onKey);
+  m.addEventListener("keydown", onKey);
+  h.focus();
+  h.select();
+}
+
 function currentMinutes(){
   const n = new Date();
   return n.getHours()*60 + n.getMinutes() + n.getSeconds()/60;
@@ -2759,14 +2823,9 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
   /* ضبط وقت الأذان من الشاشة الرئيسية — في الوضع اليدوي فقط */
   $("#ptable").addEventListener("click", e=>{
-    const btn = e.target.closest(".spin-btn[data-adhan]");
-    if(!btn || !settings.manualAdhanMode) return;
-    const key = btn.dataset.adhan, d = parseInt(btn.dataset.d, 10);
-    if(!settings.adhanOffsets) settings.adhanOffsets = {};
-    settings.adhanOffsets[key] = (settings.adhanOffsets[key] || 0) + d;
-    saveSettings();
-    refreshTimes();   /* يعيد الحساب والرسم وجدولة المنبّهات الأصلية */
-    tick();
+    if(!settings.manualAdhanMode) return;
+    const cell = e.target.closest(".cell.adhan-manual");
+    if(cell) openAdhanTimeEditor(cell);
   });
 
   $("#qiblaWidget").addEventListener("click", startCompass);
