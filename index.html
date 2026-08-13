@@ -236,6 +236,9 @@
   }
   #adhanCountdown .cs{font-size:inherit;}
   .ptable .cell{text-align:center;font-size:5.4cqw;font-weight:900;direction:ltr;line-height:1.2;}
+  /* الوضع اليدوي: مثلثا الزيادة/الإنقاص داخل خانة وقت الأذان */
+  .ptable .cell.adhan-manual{position:relative;}
+  .ptable .cell.adhan-manual .adhan-time{display:inline-block;padding:0 3.6cqw;}
   .ptable .pname{color:var(--c-pname,var(--gold-strong));font-size:5.2cqw;font-weight:900;text-align:center;line-height:1.2;}
   .ptable .adhan{color:var(--c-adhan,var(--blue));text-shadow:0 0 1.2cqw rgba(143,214,255,.35);}
   .ptable .iqamah{color:var(--c-iqamah,var(--green));text-shadow:0 0 1.2cqw rgba(125,255,160,.35);}
@@ -979,6 +982,10 @@
         <label>اتجاه أسهم التمرير في شاشة الضبط</label>
         <button type="button" class="secret-toggle-btn" id="arrowsReverseToggle">الوضع الطبيعي</button>
       </div>
+      <div class="secret-row">
+        <label>ضبط وقت الأذان من الشاشة الرئيسية</label>
+        <button type="button" class="secret-toggle-btn" id="adhanModeToggle">الوضع الآلي</button>
+      </div>
       <div class="secret-list" id="secretList"></div>
     </div>
     <button class="secret-save" id="secretSaveBtn">💾 حفظ وإغلاق</button>
@@ -1123,7 +1130,7 @@ const SOUNDS = [
 ];
 
 /* رقم إصدار التطبيق — يُرقَّى يدوياً بواحد عند كل تحديث جديد يُنشر */
-const APP_VERSION = "21";
+const APP_VERSION = "22";
 
 /* ألوان ساعة العد التنازلي — تتبدّل بالضغط عليها */
 const COUNTDOWN_COLORS = [
@@ -1149,6 +1156,8 @@ const DEFAULTS = {
   slideGroupOffsetY:0,       /* إزاحة عناصر شاشة الضبط (السلايد) كمجموعة واحدة */
   secretRowGap:0,            /* المسافة الإضافية بين مفاتيح الشاشة السرية نفسها */
   arrowsReversed:false,      /* عكس اتجاه ظهور أسهم التمرير في شاشة الضبط */
+  manualAdhanMode:false,     /* الوضع الآلي افتراضياً: أوقات الأذان غير قابلة للتغيير */
+  adhanOffsets:{},           /* الوضع اليدوي: إزاحة بالدقائق لكل أذان */
   qiblaRingWidth:3,          /* سمك الحافة الذهبية لقرص البوصلة */
   tempRingWidth:3,           /* سمك الحافة الذهبية لقرص درجة الحرارة */
   lat:23.588, lng:58.408, wilaya:"مسقط",
@@ -1247,7 +1256,10 @@ function buildSecretConfigPart(){
     secretRowGap: settings.secretRowGap,
     arrowsReversed: settings.arrowsReversed,
     qiblaRingWidth: settings.qiblaRingWidth,
-    tempRingWidth: settings.tempRingWidth
+    tempRingWidth: settings.tempRingWidth,
+    /* وضع ضبط وقت الأذان (آلي/يدوي) يُنشر لأنه من الشاشة السرية؛ أما
+       إزاحات المستخدم نفسه فتبقى محلية على جهازه */
+    manualAdhanMode: settings.manualAdhanMode
   };
 }
 function applySecretConfigPart(ui){
@@ -1259,6 +1271,7 @@ function applySecretConfigPart(ui){
   if(typeof ui.arrowsReversed === "boolean") settings.arrowsReversed = ui.arrowsReversed;
   if(typeof ui.qiblaRingWidth === "number") settings.qiblaRingWidth = ui.qiblaRingWidth;
   if(typeof ui.tempRingWidth === "number") settings.tempRingWidth = ui.tempRingWidth;
+  if(typeof ui.manualAdhanMode === "boolean") settings.manualAdhanMode = ui.manualAdhanMode;
   saveSettings();
   if(typeof applyUiOverrides === "function") applyUiOverrides();
   if(typeof applySlideGroupOffset === "function") applySlideGroupOffset();
@@ -1452,11 +1465,23 @@ async function fetchMinistryTable(){
    وإلا بالحساب الفلكي. مشتركة بين عرض اليوم والجدولة والعد التنازلي. */
 function timesForDate(date){
   const row = ministryRow(date);
-  if(row) return {times: rowToMinutes(row), source: "ministry"};
-  const t = computePrayerTimes(date, settings.lat, settings.lng);
-  const times = {};
-  for(const p of PRAYERS) times[p.key] = hoursToHM(t[p.key]);
-  return {times, source: "calc"};
+  let times, source;
+  if(row){ times = rowToMinutes(row); source = "ministry"; }
+  else{
+    const t = computePrayerTimes(date, settings.lat, settings.lng);
+    times = {};
+    for(const p of PRAYERS) times[p.key] = hoursToHM(t[p.key]);
+    source = "calc";
+  }
+  /* الوضع اليدوي: تُطبَّق إزاحة المستخدم هنا في المصدر، فتسري على كل
+     شيء تلقائياً — الجدول والعد التنازلي والإقامة ومنبّهات أندرويد */
+  if(settings.manualAdhanMode && settings.adhanOffsets){
+    for(const p of PRAYERS){
+      const off = settings.adhanOffsets[p.key];
+      if(off) times[p.key] = ((times[p.key] + off) % 1440 + 1440) % 1440;
+    }
+  }
+  return {times, source};
 }
 
 let todayTimes = null; /* {fajr: min, sunrise: min, ...} */
@@ -1502,7 +1527,8 @@ async function scheduleNativeAdhanAlarms(){
     await plugin.schedule({
       items,
       bellOn: !!settings.bellOn,
-      soundIndex: settings.soundIndex % SOUNDS.length
+      soundIndex: settings.soundIndex % SOUNDS.length,
+      volume: settings.volume
     });
   }catch(e){}
 }
@@ -1996,7 +2022,17 @@ function renderTable(){
     const hl = p.key===curKey ? " row-hl" : "";
     const adhan = document.createElement("div");
     adhan.className = "cell adhan"+hl;
-    adhan.textContent = fmtMinutes(todayTimes[p.key]);
+    if(settings.manualAdhanMode){
+      /* الوضع اليدوي: مثلثان داخل الخانة لزيادة/إنقاص دقيقة على وقت
+         الأذان — أما في الوضع الآلي فالوقت غير قابل للتغيير */
+      adhan.classList.add("adhan-manual");
+      adhan.innerHTML =
+        '<button type="button" class="spin-btn spin-up" data-adhan="'+p.key+'" data-d="1" aria-label="زيادة دقيقة"></button>' +
+        '<span class="adhan-time">'+fmtMinutes(todayTimes[p.key])+'</span>' +
+        '<button type="button" class="spin-btn spin-down" data-adhan="'+p.key+'" data-d="-1" aria-label="إنقاص دقيقة"></button>';
+    }else{
+      adhan.textContent = fmtMinutes(todayTimes[p.key]);
+    }
     const name = document.createElement("div");
     name.className = "pname"+hl;
     name.textContent = p.name;
@@ -2385,6 +2421,7 @@ function openSecretPanel(){
   $("#secretRowGapSlider").value = settings.secretRowGap;
   applySecretRowGap();
   refreshArrowsReverseToggle();
+  refreshAdhanModeToggle();
   $("#secretPanel").classList.remove("hidden");
   if(navigator.vibrate) navigator.vibrate([40,30,40,30,80]);
 }
@@ -2393,6 +2430,12 @@ function refreshArrowsReverseToggle(){
   if(!btn) return;
   btn.textContent = settings.arrowsReversed ? "الوضع المعكوس" : "الوضع الطبيعي";
   btn.classList.toggle("on", settings.arrowsReversed);
+}
+function refreshAdhanModeToggle(){
+  const btn = $("#adhanModeToggle");
+  if(!btn) return;
+  btn.textContent = settings.manualAdhanMode ? "الوضع اليدوي" : "الوضع الآلي";
+  btn.classList.toggle("on", settings.manualAdhanMode);
 }
 function closeSecretPanel(){
   $("#secretPanel").classList.add("hidden");
@@ -2654,6 +2697,18 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
   $("#gotoSettings").addEventListener("click", ()=>{ ensureAudio(); showScreen("settingsScreen"); });
 
+  /* ضبط وقت الأذان من الشاشة الرئيسية — في الوضع اليدوي فقط */
+  $("#ptable").addEventListener("click", e=>{
+    const btn = e.target.closest(".spin-btn[data-adhan]");
+    if(!btn || !settings.manualAdhanMode) return;
+    const key = btn.dataset.adhan, d = parseInt(btn.dataset.d, 10);
+    if(!settings.adhanOffsets) settings.adhanOffsets = {};
+    settings.adhanOffsets[key] = (settings.adhanOffsets[key] || 0) + d;
+    saveSettings();
+    refreshTimes();   /* يعيد الحساب والرسم وجدولة المنبّهات الأصلية */
+    tick();
+  });
+
   $("#qiblaWidget").addEventListener("click", startCompass);
   $("#adhanCountdown").addEventListener("click", cycleCountdownColor);
   $("#settingsScroll").addEventListener("scroll", updateScrollArrows);
@@ -2685,6 +2740,13 @@ document.addEventListener("DOMContentLoaded", ()=>{
     settings.arrowsReversed = !settings.arrowsReversed;
     refreshArrowsReverseToggle();
     updateScrollArrows(true);
+  });
+  $("#adhanModeToggle").addEventListener("click", ()=>{
+    settings.manualAdhanMode = !settings.manualAdhanMode;
+    refreshAdhanModeToggle();
+    saveSettings();
+    refreshTimes();   /* يُظهر/يُخفي مثلثات الضبط في الشاشة الرئيسية */
+    tick();
   });
   $("#secretCloseBtn").addEventListener("click", closeSecretPanel);
   $("#secretSaveBtn").addEventListener("click", async ()=>{
@@ -3228,6 +3290,9 @@ document.addEventListener("DOMContentLoaded", ()=>{
     if(azkarAudio) azkarAudio.volume = v;
     saveSettings();
   });
+  /* عند ترك المؤشر فقط (لا مع كل حركة) نُحدّث مستوى الصوت لدى الجانب
+     الأصلي، ليُشغَّل الأذان بنفس المستوى والتطبيق مغلق */
+  $("#volSlider").addEventListener("change", ()=>scheduleNativeAdhanAlarms());
   $("#azkarMorningBtn").addEventListener("click", ()=>{ ensureAudio(); toggleAzkar("morning"); });
   $("#azkarEveningBtn").addEventListener("click", ()=>{ ensureAudio(); toggleAzkar("evening"); });
   $("#pushToggle").addEventListener("click", async ()=>{
