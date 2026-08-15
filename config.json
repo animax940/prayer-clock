@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-08-13T02:54:10.106Z",
+  "updatedAt": "2026-08-15T06:53:45.118Z",
   "adminDevices": [
     "673fe21f1f4864898ae93c48d761d987e71f9ebffb7643b843aba820b0d891a7"
   ],
@@ -95,7 +95,7 @@
       },
       "s-iqbox": {
         "x": 0,
-        "y": 18.2929559944021,
+        "y": 18.0765044316591,
         "sx": 1,
         "sy": 1.3798476131239301
       },
@@ -224,7 +224,7 @@
     "secretPanelWidth": 88.4759616464195,
     "slideGroupOffsetY": -8.02807426675038,
     "secretRowGap": 100,
-    "arrowsReversed": true,
+    "arrowsReversed": false,
     "qiblaRingWidth": 3,
     "tempRingWidth": 3,
     "manualAdhanMode": false
