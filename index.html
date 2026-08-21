@@ -1150,7 +1150,7 @@ const SOUNDS = [
 ];
 
 /* رقم إصدار التطبيق — يُرقَّى يدوياً بواحد عند كل تحديث جديد يُنشر */
-const APP_VERSION = "27";
+const APP_VERSION = "28";
 
 /* ألوان ساعة العد التنازلي — تتبدّل بالضغط عليها */
 const COUNTDOWN_COLORS = [
@@ -1625,14 +1625,19 @@ function locate(showMsg){
     if(!name) name = nearestWilaya(settings.lat, settings.lng)[0];
     const lat = settings.lat, lng = settings.lng;
     settings.autoLocate = true;
+    const changed = (name !== settings.wilaya);
     applyWilaya(name);
     settings.lat = lat; settings.lng = lng;   /* نُبقي إحداثيات الجهاز الدقيقة */
     saveSettings();
     drawQibla();
     fetchTemperature();
     if(showMsg) toast("تم تحديد الموقع: " + name);
+    else if(changed) toast("تم تحديث الموقع: " + name);
   }, ()=>{ if(showMsg) toast("تعذر تحديد الموقع — يُعرض آخر موقع محفوظ"); },
-  {enableHighAccuracy:true, timeout:10000, maximumAge:600000});
+  /* الطلب اليدوي: دقة عالية وقراءة جديدة تماماً. أما الفحص الدوري فيكتفي
+     بدقة الشبكة وبقراءة عمرها دقيقة على الأكثر — حتى لا يبقى الموقع
+     قديماً كما كان (كان يقبل قراءة عمرها 10 دقائق) وبلا استنزاف للبطارية */
+  {enableHighAccuracy: !!showMsg, timeout:10000, maximumAge: showMsg ? 0 : 60000});
 }
 
 /* ============================================================
@@ -3530,6 +3535,10 @@ document.addEventListener("DOMContentLoaded", ()=>{
     refreshTimes();
     updateTicker();
     fetchTemperature();
+    /* إعادة تحديد الموقع دورياً وعند العودة للتطبيق — كان يُحدَّد مرة
+       واحدة فقط عند الإقلاع، فيبقى اسم الولاية قديماً بعد الانتقال
+       لولاية أخرى حتى إعادة تشغيل التطبيق. (الاختيار اليدوي لا يُلغى) */
+    locate(false);
   }
   periodicRefresh();
   setInterval(periodicRefresh, 300000);
