@@ -1150,7 +1150,7 @@ const SOUNDS = [
 ];
 
 /* رقم إصدار التطبيق — يُرقَّى يدوياً بواحد عند كل تحديث جديد يُنشر */
-const APP_VERSION = "26";
+const APP_VERSION = "27";
 
 /* ألوان ساعة العد التنازلي — تتبدّل بالضغط عليها */
 const COUNTDOWN_COLORS = [
@@ -2411,7 +2411,11 @@ function applyUiOverrides(){
       const sy = o ? (o.sy||1) : 1;
       const sx = o ? (o.sx||1) : 1;
       el.style.minHeight = "";
-      if(sy !== 1){
+      /* لا نقيس الارتفاع الطبيعي قبل بناء صفوف الإقامة: عند فتح التطبيق
+         يعمل هذا قبل buildSettingsUI فيكون الصندوق فارغاً، فيُحسب ارتفاع
+         صغير خاطئ ويثبت عليه فيظهر الإطار منضغطاً وتتجاوزه الصفوف */
+      const rows = document.getElementById("iqamahList");
+      if(sy !== 1 && rows && rows.children.length){
         const naturalH = el.getBoundingClientRect().height;
         el.style.minHeight = (naturalH * sy) + "px";
       }
@@ -2752,6 +2756,9 @@ function showScreen(id){
   $("#app").classList.toggle("on-settings", id==="settingsScreen");
   if(id==="settingsScreen"){
     buildSettingsUI();
+    /* بعد بناء الصفوف مباشرة: يُحسب ارتفاع صندوق الإقامة على محتواه
+       الحقيقي (وقبل ذلك كان يبقى على قياس خاطئ من وقت الإقلاع) */
+    applyUiOverrides();
     scrollAtEdge = null;
     /* الاستدعاء الأولي صامت حتى لا تُصدر نقرة الحافة صوتاً ثانياً فوق
        صوت مفتاح الضبط عند فتح الشاشة */
