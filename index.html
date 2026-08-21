@@ -443,12 +443,11 @@
   /* شاشة الضبط: رأس ثابت + قسم متمرّر + تذييل ثابت (النص المتحرك وزر
      الحفظ)، والخلفية (الثيم) خارج هذا التركيب فتبقى ثابتة دائماً */
   #settingsScreen{padding-bottom:calc(.4cqh + env(safe-area-inset-bottom,0px));}
-  /* الشريط العلوي في شاشة الضبط يطفو فوق المحتوى (absolute) بدل احتلال
-     مساحة رأسية، حتى يبدأ الحد الأعلى لماسك القسم المتحرك من أعلى شاشة
-     الهاتف تماماً؛ ومسافة علوية داخل القسم تُبقي المحتوى أسفل الشريط */
+  /* الشريط العلوي (كتم الصوت و12H) صار داخل القسم المتحرك فيتحرك مع
+     بقية العناصر عند السحب. عرضه 100% بلا هوامش سالبة حتى لا تُقصّ
+     أطرافه بسبب إخفاء التمرير الأفقي في القسم */
   #settingsScreen .topbar{
-    position:absolute;top:calc(.4cqh + env(safe-area-inset-top,0px));
-    left:4cqw;right:4cqw;width:auto;margin:0;z-index:6;
+    position:relative;width:100%;margin:0;flex-shrink:0;
   }
   .settings-scroll{
     flex:1 1 auto;min-height:0;width:100%;overflow-y:auto;overflow-x:hidden;
@@ -456,9 +455,7 @@
     touch-action:pan-y;
     display:flex;flex-direction:column;align-items:center;
     scrollbar-width:none;
-    /* مسافة داخلية أعلى القسم بارتفاع الشريط الطافي — تُبقي المحتوى
-       أسفله في وضع السكون، بينما يبقى القصّ (الماسك) عند أعلى الشاشة */
-    padding-top:6.5cqh;
+    padding-top:calc(.4cqh + env(safe-area-inset-top,0px));
   }
   .settings-scroll::-webkit-scrollbar{display:none;}
   .settings-fixed-bottom{flex-shrink:0;width:100%;}
@@ -792,14 +789,6 @@
 
   <!-- ============ شاشة الضبط ============ -->
   <div class="screen hidden" id="settingsScreen">
-    <div class="topbar">
-      <div class="side-col">
-        <div class="badge rosette js-fmt">24H</div>      </div>
-      <div class="side-col">
-        <div class="badge rosette js-bell" title="الإشعارات">🔔</div>
-      </div>
-    </div>
-
     <div class="scroll-arrow up" id="scrollArrowUp">
       <span class="tri"></span><span class="tri"></span><span class="tri"></span>
     </div>
@@ -808,6 +797,16 @@
     </div>
 
     <div class="settings-scroll" id="settingsScroll">
+      <!-- الشريط العلوي داخل القسم المتحرك ليتحرك مع بقية العناصر -->
+      <div class="topbar">
+        <div class="side-col">
+          <div class="badge rosette js-fmt">24H</div>
+        </div>
+        <div class="side-col">
+          <div class="badge rosette js-bell" title="الإشعارات">🔔</div>
+        </div>
+      </div>
+
       <div class="location"><span class="js-wilaya">مسقط</span></div>
 
       <div class="clock-wrap">
@@ -1150,7 +1149,7 @@ const SOUNDS = [
 ];
 
 /* رقم إصدار التطبيق — يُرقَّى يدوياً بواحد عند كل تحديث جديد يُنشر */
-const APP_VERSION = "28";
+const APP_VERSION = "29";
 
 /* ألوان ساعة العد التنازلي — تتبدّل بالضغط عليها */
 const COUNTDOWN_COLORS = [
@@ -2412,6 +2411,18 @@ function applyUiOverrides(){
     /* صندوق الإقامة: "الطول" لا يمدّد محتواه بصرياً (scale) بل يزيد
        ارتفاعه الحقيقي فقط، فتتباعد الصفوف بينها (space-evenly) مع
        بقاء حجم كل صف ثابتاً كما هو */
+    /* الشريط العلوي (كتم الصوت و12H): يتمرّر مع القسم المتحرك، لكن
+       إزاحة المجموعة تُلغى عنه — فقد كان خارج القسم حين ضُبطت تلك
+       الإزاحة، فلو طُبّقت عليه الآن لخرج عن حدود الشاشة */
+    if(u.id === "s-topbar"){
+      const off = settings.slideGroupOffsetY || 0;
+      const x = o ? (o.x||0) : 0;
+      const y = (o ? (o.y||0) : 0) - off;
+      el.style.transform = "translate("+x+"cqw,"+y+"cqh) scale("+(o?(o.sx||1):1)+","+(o?(o.sy||1):1)+")";
+      el.style.transformOrigin = "center";
+      continue;
+    }
+
     if(u.id === "s-iqbox"){
       const sy = o ? (o.sy||1) : 1;
       const sx = o ? (o.sx||1) : 1;
@@ -2528,6 +2539,9 @@ function applySecretPanelWidth(){
 function applySlideGroupOffset(){
   const el = $("#settingsScroll");
   if(el) el.style.transform = settings.slideGroupOffsetY ? "translateY("+settings.slideGroupOffsetY+"cqh)" : "";
+  /* الشريط العلوي صار داخل القسم فيتمرّر معه، لكن إزاحة المجموعة تُلغى
+     عنه في applyUiOverrides حتى يبقى الضبط المنشور سابقاً كما هو */
+  applyUiOverrides();
 }
 /* نسبة مئوية تغيّر التباعد بين كل الأسطر في الشاشة السرية — بين
    الأقسام وداخل كل قسم على حدّ سواء (بلا تمدد للنصوص، إزاحة فقط)،
